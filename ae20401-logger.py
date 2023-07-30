@@ -174,10 +174,13 @@ def on_closing():
 
 # Function to update the interface items based on the selected option
 def update_interface_on_channel_change():
-    global option_var, modes, left_frame
+    global option_var, modes, left_frame, power_modes
     global checkbox_1_edge, checkbox_2_smooth
     global checkbox_3_offset, checkbox_4_run
     global checkbox_5_external, checkbox_6_imp_count
+    global window_width
+    global attenuation_text, offset_text, offset_scale_text, impulse_per_revolution_text
+
     selected_option = option_var.get()
     # Clear any existing widgets in the left pane
     for widget in left_frame.winfo_children():
@@ -197,6 +200,40 @@ def update_interface_on_channel_change():
         checkbox2.pack(anchor=tk.W)
         checkbox3 = ttk.Checkbutton(left_frame, text="Offset Enabled", variable=checkbox_3_offset)
         checkbox3.pack(anchor=tk.W)
+        # Add a text frame and a button on the same line
+        offset_magn_frame = ttk.Frame(left_frame)
+        offset_magn_frame.pack(anchor=tk.W)
+        label1 = ttk.Label(offset_magn_frame, text="Offset: (Hz)")
+        label1.grid(row=0, column=0, columnspan=2, padx=2, pady=5)
+        offset_text.set("0")
+        offset_entry = ttk.Entry(offset_magn_frame, textvariable=offset_text, width=int(window_width/150), state='disabled')
+        offset_entry.grid(row=1, column=0, padx=2, pady=5)
+        button1 = ttk.Button(offset_magn_frame, text="Send", width=window_width*0.05)
+        button1.grid(row=1, column=1, padx=2, pady=5)
+        button1["state"] = "disabled"
+        
+        offset_scale_frame = ttk.Frame(left_frame)
+        offset_scale_frame.pack(anchor=tk.W)
+        label2 = ttk.Label(offset_scale_frame, text="Offset Scale:(min 0.001)")
+        label2.grid(row=0, column=0, columnspan=2, padx=2, pady=5)
+        offset_scale_text.set("1.000")
+        offset_scale_entry = ttk.Entry(offset_scale_frame, textvariable=offset_scale_text, width=int(window_width/150), state='disabled')
+        offset_scale_entry.grid(row=1, column=0, padx=2, pady=5)
+        button2 = ttk.Button(offset_scale_frame, text="Send", width=window_width*0.05)
+        button2.grid(row=1, column=1, padx=2, pady=5)
+        button2["state"] = "disabled"
+
+        offset_imprev_frame = ttk.Frame(left_frame)
+        offset_imprev_frame.pack(anchor=tk.W)
+        label3 = ttk.Label(offset_imprev_frame, text="Impulses per rev.")
+        label3.grid(row=0, column=0, columnspan=2, padx=2, pady=5)
+        impulse_per_revolution_text.set("100")
+        impulse_per_revolution_entry = ttk.Entry(offset_imprev_frame, textvariable=impulse_per_revolution_text, width=int(window_width/150))
+        impulse_per_revolution_entry.grid(row=1, column=0, padx=2, pady=5)
+        button3 = ttk.Button(offset_imprev_frame, text="Send", width=window_width*0.05)
+        button3.grid(row=1, column=1, padx=2, pady=2)
+        
+
 
     elif selected_option == "Channel B":
         # Add UI options for Channel B
@@ -209,6 +246,29 @@ def update_interface_on_channel_change():
         checkbox3 = ttk.Checkbutton(left_frame, text="Offset Enabled", variable=checkbox_3_offset)
         checkbox3.pack(anchor=tk.W)
 
+        offset_magn_frame = ttk.Frame(left_frame)
+        offset_magn_frame.pack(anchor=tk.W)
+        label1 = ttk.Label(offset_magn_frame, text="Offset: (Hz)")
+        label1.grid(row=0, column=0, columnspan=2, padx=2, pady=5)
+        offset_text.set("0")
+        offset_entry = ttk.Entry(offset_magn_frame, textvariable=offset_text, width=int(window_width/150), state='disabled')
+        offset_entry.grid(row=1, column=0, padx=2, pady=5)
+        button1 = ttk.Button(offset_magn_frame, text="Send", width=window_width*0.05)
+        button1.grid(row=1, column=1, padx=2, pady=5)
+        button1["state"] = "disabled"
+        
+        offset_scale_frame = offset_magn_frame
+        #offset_scale_frame = ttk.Frame(left_frame)
+        #offset_scale_frame.pack(anchor=tk.W)
+        label2 = ttk.Label(offset_scale_frame, text="Offset Scale:")#(min 0.001)")
+        label2.grid(row=3, column=0, columnspan=2, padx=2, pady=5)
+        offset_scale_text.set("1.000")
+        offset_scale_entry = ttk.Entry(offset_scale_frame, textvariable=offset_scale_text, width=int(window_width/150), state='disabled')
+        offset_scale_entry.grid(row=4, column=0, padx=2, pady=5)
+        button2 = ttk.Button(offset_scale_frame, text="Send", width=window_width*0.05)
+        button2.grid(row=4, column=1, padx=2, pady=5)
+        button2["state"] = "disabled"
+
     elif selected_option == "Channel C":
         # Add radio buttons for Option 3
         checkbox4 = ttk.Checkbutton(left_frame, text="Run/Stop", variable=checkbox_4_run)
@@ -217,16 +277,36 @@ def update_interface_on_channel_change():
         checkbox5.pack(anchor=tk.W)
         checkbox6 = ttk.Checkbutton(left_frame, text="Imp/Count", variable=checkbox_6_imp_count)
         checkbox6.pack(anchor=tk.W)
+        offset_imprev_frame = ttk.Frame(left_frame)
+        offset_imprev_frame.pack(anchor=tk.W)
+        label3 = ttk.Label(offset_imprev_frame, text="Impulses per revolution")
+        label3.grid(row=0, column=0, columnspan=2, padx=2, pady=5)
+        impulse_per_revolution_text.set("100")
+        impulse_per_revolution_entry = ttk.Entry(offset_imprev_frame, textvariable=impulse_per_revolution_text, width=int(window_width/150))
+        impulse_per_revolution_entry.grid(row=1, column=0, padx=2, pady=5)
+        button3 = ttk.Button(offset_imprev_frame, text="Send", width=window_width*0.05)
+        button3.grid(row=1, column=1, padx=2, pady=2)
             
     elif selected_option == "Power":
         # Add radio buttons for Option 3
         radio_var = tk.StringVar(value="A")
-        for i in range(3):
-            radio_button = ttk.Radiobutton(left_frame, text=f"Option 3 - Radio {chr(65+i)}", variable=radio_var, value=chr(65+i))
+        for i in range(len(power_modes)):
+            radio_button = ttk.Radiobutton(left_frame, text=f"mode: {power_modes[i]}", variable=radio_var, value=chr(65+i))
             radio_button.pack(anchor=tk.W)
         
-        checkbox7 = ttk.Checkbutton(left_frame, text="Attenuator Enbabled", variable=checkbox_7_attenuator)
+        checkbox7 = ttk.Checkbutton(left_frame, text="Attenuator", variable=checkbox_7_attenuator)
         checkbox7.pack(anchor=tk.W)
+        # Add a text frame and a button on the same line
+        text_btn_frame = ttk.Frame(left_frame)
+        text_btn_frame.pack(anchor=tk.W)
+        label = ttk.Label(text_btn_frame, text="Att.: (dB)")
+        label.grid(row=0, column=0, padx=5, pady=5)
+        attenuation_text.set("0.0")
+        attenuation_entry = ttk.Entry(text_btn_frame, textvariable=attenuation_text, width=int(window_width/150), state='disabled')
+        attenuation_entry.grid(row=1, column=0, padx=2, pady=5)
+        button = ttk.Button(text_btn_frame, text="Send", width=window_width*0.05)
+        button.grid(row=1, column=1, padx=2, pady=2)
+        button["state"] = "disabled"
 
 def on_dropdown_select(event):
     update_interface_on_channel_change()
@@ -244,6 +324,8 @@ channel_dropdown = None
 left_frame = None
 option_var = None
 modes = ["Frequency","Period","RPM"]
+power_modes=["dBm",  "mW", "Vrms","Peak-Peak (Vpp)", "Vpeak (Vp)"]
+# menu mode checkboxes
 checkbox_1_edge = None
 checkbox_2_smooth = None
 checkbox_3_offset = None
@@ -251,6 +333,13 @@ checkbox_4_run = None
 checkbox_5_external = None
 checkbox_6_imp_count = None
 checkbox_7_attenuator = None
+# mode menu text entries
+attenuation_text = None
+offset_text = None
+offset_scale_text = None
+impulse_per_revolution_text = None
+
+window_width = 0
 
 # Main function to create the GUI and start the application
 def main():
@@ -260,6 +349,8 @@ def main():
     global checkbox_1_edge, checkbox_2_smooth
     global checkbox_3_offset, checkbox_4_run
     global checkbox_5_external, checkbox_6_imp_count
+    global attenuation_text, window_width
+    global attenuation_text, offset_text, offset_scale_text, impulse_per_revolution_text
 
     # Create the main window
     root = tk.Tk()
@@ -270,13 +361,24 @@ def main():
     checkbox_5_external = tk.IntVar(value=1)
     checkbox_6_imp_count = tk.IntVar(value=0)
     checkbox_7_attenuator = tk.IntVar(value=0)
+    attenuation_text = tk.StringVar()
+    offset_text = tk.StringVar()
+    offset_scale_text = tk.StringVar()
+    impulse_per_revolution_text = tk.StringVar()
 
     option_var = tk.StringVar(value="Channel C")
 
-    root.title("Serial Data Parser")
+    root.title("Æ20401 Data Logger")
 
     # Event to stop the data acquisition thread when the window is closed
     root.protocol("WM_DELETE_WINDOW", on_closing)
+
+    # Calculate the window size based on screen size
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    window_width = int(screen_width * 4 / 5)
+    window_height = int(screen_height * 2 / 3)
+    root.geometry(f"{window_width}x{window_height}")
 
     # Create the toolbar along the top
     toolbar = ttk.Frame(root)
@@ -312,7 +414,10 @@ def main():
     main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
     # Create the left frame for interface items
-    left_frame = ttk.Frame(main_frame, width=300)
+    left_frame_width = window_width/5
+    if left_frame_width < 300:
+        left_frame_width = 300
+    left_frame = ttk.Frame(main_frame, width=left_frame_width)
     left_frame.pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=5)
     left_frame.pack_propagate(False)  # Disable automatic resizing of the left frame
 
