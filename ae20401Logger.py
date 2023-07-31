@@ -133,35 +133,10 @@ def update_graph():
             plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
             canvas.draw()
     elif selected_option == "Power":
+        tell_User("unimplemented option selected")
         pass
     else:
         tell_User("unsupported option selected")
-    #if data_list:  # empty list is false
-    #    first_code = data_list[0][2]
-    #    if first_code == 'C':
-    #        #if all(char == first_code for char in data_list[:][2]):
-    #        if all(entry[2] == first_code for entry in data_list):
-    #            timestamps = [entry[0] for entry in data_list]
-    #            data = [int(entry[3]) for entry in data_list]
-    #            plt.clf()
-    #            plt.plot(timestamps, data, marker='x')
-    #            if len(timestamps) >10:
-    #                tick_size = int(len(timestamps)/10)
-    #                plt.xticks(timestamps[::tick_size])
-    #            if len(data) >10:
-    #                min_v = min(data)
-    #                max_v = max(data)
-    #                if max_v-min_v > 1.0:
-    #                    tick_size = int(len(data)/10)
-    #                    plt.yticks(np.arange(min_v, max_v, step=(max_v-min_v)/10.0))
-    #            plt.xlabel("Time")
-    #            plt.ylabel("Counts")
-    #            plt.title("Channel C - Counter")
-    #            plt.grid(True)
-    #            plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
-    #            canvas.draw()
-    #        else:
-    #            print("heterogenous data!  Not sure what to plot...")
 
 def save_to_csv():
     """ Saves the data_list to a csv file
