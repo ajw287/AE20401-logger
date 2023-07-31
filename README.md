@@ -1,7 +1,7 @@
 # AE20401-logger
 Graph and record data from an Ascel Æ20401 over USB
 
-![Screenshot of AE20401 Logger](docs./docs/pics/GerberDifferenceViewer.png "Screenshot of logging data")
+![Screenshot of AE20401 Logger](docs/pics/channelA-frequency.png "Screenshot of logging data")
 
 This is a very simple serial interface for the USB output of the Æ20401 5.8 GHz Frequency Counter/Power meter
 
