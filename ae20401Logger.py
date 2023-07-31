@@ -123,7 +123,7 @@ def read_serial_data_in_thread(ser, stop_event, data_queue):
             #print(line)
             message_contents = parse_data_message(line) 
             #print('device:%s code:%s data:$%.2f' % (ecn, code, data))
-            if len(data) == 3:
+            if len(message_contents) == 3:
                 ecn, code, data = message_contents
                 #data_list.append([timestamp, ecn, code, data])
                 data_queue.put((timestamp, ecn, code, data))
