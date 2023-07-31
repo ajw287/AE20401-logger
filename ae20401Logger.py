@@ -26,15 +26,21 @@ def update_graph():
             #if all(char == first_code for char in data_list[:][2]):
             if all(entry[2] == first_code for entry in data_list):
                 timestamps = [entry[0] for entry in data_list]
-                data = [entry[3] for entry in data_list]
+                data = [int(entry[3]) for entry in data_list]
                 plt.clf()
                 plt.plot(timestamps, data, marker='x')
                 if len(timestamps) >10:
                     tick_size = int(len(timestamps)/10)
                     plt.xticks(timestamps[::tick_size])
+                if len(data) >10:
+                    min_v = min(data)
+                    max_v = max(data)
+                    if max_v-min_v > 1.0:
+                        tick_size = int(len(data)/10)
+                        plt.yticks(np.arange(min_v, max_v, step=(max_v-min_v)/10.0))
                 plt.xlabel("Time")
                 plt.ylabel("Counts")
-                plt.title("Serial Data Graph")
+                plt.title("Channel C - Counter")
                 plt.grid(True)
                 plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
                 canvas.draw()
@@ -47,6 +53,7 @@ def save_to_csv():
 
     global data_list
     file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV Files", "*.csv")])
+    tellUser("writing data to : "+file_path)
     if file_path:
         with open(file_path, 'w') as file:
             file.write("Timestamp, ECN, Code, Data\n")
@@ -96,15 +103,12 @@ def start_button_click():
             #thread = threading.Thread(target=read_serial_data_in_thread, args=(selected_port, thread_stop_event))
             read_thread.daemon = True  # Set the thread as a daemon so that it will stop when the main thread stops
             read_thread.start()
+            tellUser("setup logging and awating data...")
             # Update the graph when new data arrives
             root.after(100, process_received_data)
-            
-        except:
+        except Exception as e:
+            print(e)
             print("Failed to connect to device")
-            ## Create a queue to hold the received data
-            
-            ## Start a new thread to read data from the serial port
-            #serialCon = ser
 
 def process_received_data():
     """Process received data from the queue and update the graph
@@ -113,8 +117,10 @@ def process_received_data():
     global data_list, thread_stop_event, device
     try:
         while True:
+            tellUser("getting data via USB")
             timestamp, ecn, code, data = device.data_queue.get_nowait()
             data_list.append([timestamp, ecn, code, data])
+            tellUser("getting data via USB")
     except queue.Empty: 
         pass
     update_graph()
@@ -127,7 +133,8 @@ def stop_button_click():
 
     global start_button, stop_button, serial
     stop_button["state"] = "disabled"
-    start_button["state"] = "active"
+    # serial interface doesn't seem to restart...
+    #start_button["state"] = "active"
     stop_data_acquisition()
     
 
@@ -166,6 +173,7 @@ def update_interface_on_channel_change():
     global checkbox_5_external, checkbox_6_imp_count
     global window_width
     global attenuation_text, offset_text, offset_scale_text, impulse_per_revolution_text
+    global channel_A_mode, channel_B_mode, power_mode
 
     selected_option = option_var.get()
     # Clear any existing widgets in the left pane
@@ -175,11 +183,11 @@ def update_interface_on_channel_change():
     # Add new widgets based on the selected option
     if selected_option == "Channel A":
         # Add UI options for Channel A
-        radio_var = tk.StringVar(value="1")
+        #channel_A_mode = tk.StringVar(value=f"{modes[0]}")
         for i in range(3):
-            radio_button = ttk.Radiobutton(left_frame, text=f"{modes[i]}", variable=radio_var, value=str(i+1))
+            radio_button = ttk.Radiobutton(left_frame, text=f"{modes[i]}", variable=channel_A_mode, value=f"{modes[i]}")
             radio_button.pack(anchor=tk.W)
-
+        channel_A_mode.set(f"{modes[0]}")
         checkbox1 = ttk.Checkbutton(left_frame, text="Rising Edge", variable=checkbox_1_edge)
         checkbox1.pack(anchor=tk.W)
         checkbox2 = ttk.Checkbutton(left_frame, text="Smooth Enabled", variable=checkbox_2_smooth)
@@ -225,10 +233,11 @@ def update_interface_on_channel_change():
         
     elif selected_option == "Channel B":
         # Add UI options for Channel B
-        radio_var = tk.StringVar(value="1")
         for i in range(2):
-            radio_button = ttk.Radiobutton(left_frame, text=f"{modes[i]}", variable=radio_var, value=str(i+1))
+            radio_button = ttk.Radiobutton(left_frame, text=f"{modes[i]}", variable=channel_B_mode, value=f"{modes[i]}")
             radio_button.pack(anchor=tk.W)
+        channel_B_mode.set(f"{modes[0]}")
+
         checkbox2 = ttk.Checkbutton(left_frame, text="Smooth Enabled", variable=checkbox_2_smooth)
         checkbox2.pack(anchor=tk.W)
         checkbox3 = ttk.Checkbutton(left_frame, text="Offset Enabled", variable=checkbox_3_offset)
@@ -302,6 +311,13 @@ def on_dropdown_select(event):
     """
     update_interface_on_channel_change()
 
+def tellUser(text_to_output, label_msg=True):
+    global root, tell_user_label
+    # Insert The text.
+    if label_msg:
+        tell_user_label['text'] = text_to_output
+        root.update_idletasks()
+
 ### GLOBALS ###
 data_list = [] # List to hold the processed received data
 # create a thread as a global
@@ -315,6 +331,7 @@ left_frame = None
 option_var = None
 modes = ["Frequency","Period","RPM"]
 power_modes=["dBm",  "mW", "Vrms","Peak-Peak (Vpp)", "Vpeak (Vp)"]
+channel_A_mode = None
 # menu mode checkboxes
 checkbox_1_edge = None
 checkbox_2_smooth = None
@@ -329,6 +346,7 @@ attenuation_text = None
 offset_text = None
 offset_scale_text = None
 impulse_per_revolution_text = None
+tell_user_label = None
 
 window_width = 0
 
@@ -342,10 +360,12 @@ def main():
     global attenuation_text, window_width
     global attenuation_text, offset_text, offset_scale_text, impulse_per_revolution_text
     global device
+    global tell_user_label
+    global channel_A_mode, channel_B_mode, power_mode
     # Create the main window
     root = tk.Tk()
     #initialise tkinter global variables
-    checkbox_1_edge = tk.IntVar(value=0)
+    checkbox_1_edge = tk.IntVar(value=1)
     checkbox_2_smooth = tk.IntVar(value=0)
     checkbox_3_offset = tk.IntVar(value=0)
     checkbox_4_imp_countA = tk.IntVar(value=0)
@@ -353,6 +373,10 @@ def main():
     checkbox_6_external = tk.IntVar(value=1)
     checkbox_7_imp_countC = tk.IntVar(value=0)
     checkbox_8_attenuator = tk.IntVar(value=0)
+
+    channel_A_mode = tk.StringVar()
+    channel_B_mode = tk.StringVar()
+    power_mode = tk.StringVar()
 
     attenuation_text = tk.StringVar()
     offset_text = tk.StringVar()
@@ -399,6 +423,9 @@ def main():
 
     # Bind the dropdown's selection event to update the interface items
     channel_dropdown.bind("<<ComboboxSelected>>", on_dropdown_select)
+    tell_user_label = tk.Label(toolbar, text="Select COM port and press start")
+    tell_user_label.pack(side=tk.RIGHT, padx = 30, pady = 10)
+
 
     # Create the main frame for the left and right sections
     main_frame = ttk.Frame(root)
