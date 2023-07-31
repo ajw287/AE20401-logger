@@ -4,30 +4,19 @@ This script shows a graph of the data coming from an Æ20401 device from ascel e
 
 The primary aim is to provide a linux option for the software, but the code should be multiplatform.
 """
-import serial.tools.list_ports
-import serial
+
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
-from datetime import datetime
 import threading
 import queue
 import numpy as np
 from time import sleep
+
 from parsers.data_parser import parse_data_message, message_format
-
-def fetch_serial_ports():
-    """ Function to fetch available COM ports
-
-    Returns
-    -------
-    ports : list
-        a list of available ports
-    """
-
-    return [port.device for port in serial.tools.list_ports.comports()]
+from devices.serialDevice import serialDevice
 
 def update_graph():
     """ Function to update the graph"""
@@ -62,27 +51,7 @@ def save_to_csv():
                 timestamp, ecn, code, data = entry
                 file.write(f"{timestamp},{ecn},{code},{data}\n")
 
-def send_command(ser, command, data):
-    """send a command down the serial port
-
-    Parameters
-    ----------
-    ser : serial.serialposix.Serial
-        an open serial port to the ae20401
-    command: string
-        string of the command to send (commands are found in data_parser.message_format)
-    data:   string
-        data to send with the command see ae20401 manual
-    """
-
-    if command == 'P':
-        ser.send(f"401:{command}:{data}:;")
-    elif command == 'Q':
-        ser.send(f"401:{command}:{int(data*1000)}:;")
-    else:
-        pass
-
-def read_serial_data_in_thread(ser, stop_event, data_queue):
+def read_serial_data_in_thread(device, stop_event):
     """ Function to read data from the selected COM port (in a separate thread)
 
     Parameters
@@ -98,46 +67,29 @@ def read_serial_data_in_thread(ser, stop_event, data_queue):
     global root
     charLim = 25
     chars = 0
-    syncd = False
-    while (syncd == False) and charLim > chars:
-        serial_char = ser.read(1)
-        print(serial_char)
-        chars += 1
-        if serial_char == b";":
-            print("match!")
-            syncd = True
-    if(syncd == False):
-        print("something went wrong with the syncing...")
-        exit()
-    try:
-        while not stop_event.is_set():
-            #line = ser.readline().decode().strip()
-            line = ser.read(6).decode("utf-8")
-            # Note that timestamps aren't strict, but at the whims of python/OS
-            timestamp = datetime.now().strftime('%H:%M:%S.%f')  # Generate timestamp for the line
-            serial_char = b"x"
-            while serial_char != ";":
-                serial_char = ser.read(1).decode("utf-8")
-                line += serial_char
-            #print("serial data:")
-            #print(line)
-            message_contents = parse_data_message(line) 
-            #print('device:%s code:%s data:$%.2f' % (ecn, code, data))
-            if len(message_contents) == 3:
-                ecn, code, data = message_contents
-                #data_list.append([timestamp, ecn, code, data])
-                data_queue.put((timestamp, ecn, code, data))
-            else:
-                print(message_contents)
-                raise ValueError("Received an unexpected or unimplemented serial message.")
-    except serial.SerialException as e:
-        print("Error:", e)
+
+    device.synchronise()
+    #syncd = False
+    #while (syncd == False) and charLim > chars:
+    #    serial_char = ser.read(1)
+    #    #print(serial_char)
+    #    chars += 1
+    #    if serial_char == b";":
+    #        print("match!")
+    #        syncd = True
+    #if(syncd == False):
+    #    print("something went wrong with the syncing...")
+    #    exit()
+    while not thread_stop_event.is_set():
+        timestamp, ecn, code, data = device.get_next_message()
+        data_queue.put((timestamp, ecn, code, data))
+
     
 def start_button_click():
     """'Start' button click handler - starts logging data
     """
 
-    global thread_stop_event, start_button, stop_button, serialCon, data_list, data_queue, read_thread
+    global thread_stop_event, start_button, stop_button, device, data_list, data_queue, read_thread
 
     start_button["state"] = "disabled"
     stop_button["state"] = "active"
@@ -145,21 +97,22 @@ def start_button_click():
     selected_port = com_port_var.get()
     if selected_port:
         try:
-            ser = serial.Serial(selected_port, baudrate=9600, timeout=1)
+            device.connect(selected_port)
             # Clear data_list before starting a new data acquisition
             data_list.clear()
-            # Create a queue to hold the received data
-            data_queue = queue.Queue()
-            # Start a new thread to read data from the serial port
-            read_thread = threading.Thread(target=read_serial_data_in_thread, args=(ser, thread_stop_event, data_queue))
+            read_thread = threading.Thread(target=read_serial_data_in_thread, args=(device, thread_stop_event))
             #thread = threading.Thread(target=read_serial_data_in_thread, args=(selected_port, thread_stop_event))
             read_thread.daemon = True  # Set the thread as a daemon so that it will stop when the main thread stops
             read_thread.start()
             # Update the graph when new data arrives
             root.after(100, process_received_data, data_queue)
-            serialCon = ser
+            
         except:
-            print("Error connecting to serial")
+            print("Failed to connect to device")
+            ## Create a queue to hold the received data
+            #data_queue = queue.Queue()
+            ## Start a new thread to read data from the serial port
+            #serialCon = ser
 
 def process_received_data(data_queue):
     """Process received data from the queue and update the graph
@@ -193,10 +146,10 @@ def stop_button_click():
 
 
 def stop_data_acquisition():
-    """ Function to stop the data acquisition thread
+    """ Function to stop the data acquisition thread and clean up
     """
 
-    global serialCon, read_thread, thread_stop_event
+    global device, read_thread, thread_stop_event
     print("set stop event")
     thread_stop_event.set()
     sleep(0.15) # blocking wait for the last 'after' command
@@ -204,8 +157,8 @@ def stop_data_acquisition():
     if read_thread is not None:
         read_thread.join()  # Wait for the thread to terminate gracefully
         print("successful")
-    if serialCon is not None:
-       serialCon.__del__() #
+    if device is not None:
+        device.disconnect()
 
 def on_closing():
     """Function to handle the window closing event.  Exits uncleanly if the window doesn't close!
@@ -368,7 +321,9 @@ data_queue = None # passes data from serial
 # create a thread as a global
 read_thread = None
 # global for holding the serial connection.
-serialCon = None
+#serialCon = None
+device = serialDevice()
+
 channel_options = ["Channel A", "Channel B", "Channel C", "Power"]
 channel_dropdown = None
 left_frame = None
@@ -401,7 +356,7 @@ def main():
     global checkbox_6_external, checkbox_7_imp_countC, checkbox_8_attenuator
     global attenuation_text, window_width
     global attenuation_text, offset_text, offset_scale_text, impulse_per_revolution_text
-
+    global device
     # Create the main window
     root = tk.Tk()
     #initialise tkinter global variables
@@ -438,7 +393,7 @@ def main():
     toolbar.pack(side=tk.TOP, fill=tk.X)
 
     # Fetch available COM ports
-    com_ports = fetch_serial_ports()
+    com_ports = device.fetch_serial_ports()
     com_port_var = tk.StringVar(value=com_ports[0]) if com_ports else tk.StringVar()
     com_port_dropdown = ttk.Combobox(toolbar, textvariable=com_port_var, values=com_ports, state="readonly")
     com_port_dropdown.pack(side=tk.LEFT, padx=5, pady=5)
