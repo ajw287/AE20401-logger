@@ -20,32 +20,86 @@ from devices.serialDevice import serialDevice
 
 def update_graph():
     """ Function to update the graph"""
-    if data_list:  # empty list is false
-        first_code = data_list[0][2]
-        if first_code == 'C':
-            #if all(char == first_code for char in data_list[:][2]):
-            if all(entry[2] == first_code for entry in data_list):
-                timestamps = [entry[0] for entry in data_list]
-                data = [int(entry[3]) for entry in data_list]
-                plt.clf()
-                plt.plot(timestamps, data, marker='x')
-                if len(timestamps) >10:
-                    tick_size = int(len(timestamps)/10)
-                    plt.xticks(timestamps[::tick_size])
-                if len(data) >10:
-                    min_v = min(data)
-                    max_v = max(data)
-                    if max_v-min_v > 1.0:
-                        tick_size = int(len(data)/10)
-                        plt.yticks(np.arange(min_v, max_v, step=(max_v-min_v)/10.0))
-                plt.xlabel("Time")
-                plt.ylabel("Counts")
-                plt.title("Channel C - Counter")
-                plt.grid(True)
-                plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
-                canvas.draw()
-            else:
-                print("heterogenous data!  Not sure what to plot...")
+
+    global option_var, channel_A_mode
+    selected_option = option_var.get()
+    if selected_option == "Channel A":
+        mode = channel_A_mode.get()
+        if mode == "Frequency" and data_list:  # empty list is false - if we have data
+            print("hello")
+            timestamps = [entry[0] for entry in data_list if entry[2]=='A']
+            data = [int(entry[3])  for entry in data_list if entry[2]=='A']
+            plt.clf()
+            plt.plot(timestamps, data, marker='x')
+            if len(timestamps) >10:
+                tick_size = int(len(timestamps)/10)
+                plt.xticks(timestamps[::tick_size])
+            if len(data) >10:
+                min_v = min(data)
+                max_v = max(data)
+                if max_v-min_v > 1.0:
+                    tick_size = int(len(data)/10)
+                    plt.yticks(np.arange(min_v, max_v, step=(max_v-min_v)/10.0))
+            plt.xlabel("Time / ms")
+            plt.ylabel(mode)
+            plt.title(selected_option + " " + mode)
+            plt.grid(True)
+            plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
+            canvas.draw()
+    elif selected_option == "Channel B":
+        pass
+    elif selected_option == "Channel C":
+        if data_list:  # empty list is false - if we have data
+            # plot only data with a 'C'
+            timestamps = [entry[0] for entry in data_list if entry[2]=='C']
+            data = [int(entry[3])  for entry in data_list if entry[2]=='C']
+            plt.clf()
+            plt.plot(timestamps, data, marker='x')
+            if len(timestamps) >10:
+                tick_size = int(len(timestamps)/10)
+                plt.xticks(timestamps[::tick_size])
+            if len(data) >10:
+                min_v = min(data)
+                max_v = max(data)
+                if max_v-min_v > 1.0:
+                    tick_size = int(len(data)/10)
+                    plt.yticks(np.arange(min_v, max_v, step=(max_v-min_v)/10.0))
+            plt.xlabel("Time")
+            plt.ylabel("Counts")
+            plt.title("Channel C - Counter")
+            plt.grid(True)
+            plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
+            canvas.draw()
+    elif selected_option == "Power":
+        pass
+    else:
+        tell_User("unsupported option selected")
+    #if data_list:  # empty list is false
+    #    first_code = data_list[0][2]
+    #    if first_code == 'C':
+    #        #if all(char == first_code for char in data_list[:][2]):
+    #        if all(entry[2] == first_code for entry in data_list):
+    #            timestamps = [entry[0] for entry in data_list]
+    #            data = [int(entry[3]) for entry in data_list]
+    #            plt.clf()
+    #            plt.plot(timestamps, data, marker='x')
+    #            if len(timestamps) >10:
+    #                tick_size = int(len(timestamps)/10)
+    #                plt.xticks(timestamps[::tick_size])
+    #            if len(data) >10:
+    #                min_v = min(data)
+    #                max_v = max(data)
+    #                if max_v-min_v > 1.0:
+    #                    tick_size = int(len(data)/10)
+    #                    plt.yticks(np.arange(min_v, max_v, step=(max_v-min_v)/10.0))
+    #            plt.xlabel("Time")
+    #            plt.ylabel("Counts")
+    #            plt.title("Channel C - Counter")
+    #            plt.grid(True)
+    #            plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
+    #            canvas.draw()
+    #        else:
+    #            print("heterogenous data!  Not sure what to plot...")
 
 def save_to_csv():
     """ Saves the data_list to a csv file
@@ -332,6 +386,8 @@ option_var = None
 modes = ["Frequency","Period","RPM"]
 power_modes=["dBm",  "mW", "Vrms","Peak-Peak (Vpp)", "Vpeak (Vp)"]
 channel_A_mode = None
+channel_B_mode = None
+power_mode = None
 # menu mode checkboxes
 checkbox_1_edge = None
 checkbox_2_smooth = None
