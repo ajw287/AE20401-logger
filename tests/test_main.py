@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import ae20401Logger
 
-@pytest.mark.skipif("CI" in os.environ, reason="Skipping GUI test in CI")
+#@pytest.mark.skipif("CI" in os.environ, reason="Skipping GUI test in CI")
 class TestMainFunction:
     """ A minimal test that the function runs
     """
