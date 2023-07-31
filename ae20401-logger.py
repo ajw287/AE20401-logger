@@ -12,23 +12,9 @@ import numpy as np
 from time import sleep
 from parsers.data_parser import parse_data_message, message_format
 
-
-
 # Function to fetch available COM ports
 def fetch_serial_ports():
     return [port.device for port in serial.tools.list_ports.comports()]
-
-# Function to parse and process the serial data
-#def parse_data(line):
-#    # Modify this function to parse and process your serial data
-#    # Example: <ECN>:<CODE>:<DATA>
-#    parts = line.split(":")
-#    if len(parts) == 4:
-#        ecn = parts[0]
-#        code = parts[1]
-#        data = float(parts[2])
-#        return ecn, code, data
-#    return None, None, None
 
 # Function to update the graph
 def update_graph():
@@ -59,6 +45,15 @@ def save_to_csv():
             for entry in data_list:
                 timestamp, ecn, code, data = entry
                 file.write(f"{timestamp},{ecn},{code},{data}\n")
+
+# Function to send a command down the serial port
+def send_command(ser, command, data):
+    if command == 'P':
+        ser.send(f"401:{command}:{data}:;")
+    elif command == 'Q':
+        ser.send(f"401:{command}:{int(data*1000)}:;")
+    else:
+        pass
 
 # Function to read data from the selected COM port (in a separate thread)
 def read_serial_data_in_thread(ser, stop_event, data_queue):
@@ -99,13 +94,7 @@ def read_serial_data_in_thread(ser, stop_event, data_queue):
                 raise ValueError("Received an unexpected or unimplemented serial message.")
     except serial.SerialException as e:
         print("Error:", e)
-    # Call process_received_data again after a short delay, passing the data_queue as an argument
-    #finally:
-    #    if ser.is_open:
-    #        ser.__del__()
-    #
     
-
 # Function to handle the "Start" button click
 def start_button_click():
     global thread_stop_event, start_button, stop_button, serialCon, data_list, data_queue, read_thread
@@ -223,15 +212,19 @@ def update_interface_on_channel_change():
         button2.grid(row=1, column=1, padx=2, pady=5)
         button2["state"] = "disabled"
 
+        checkbox4 = ttk.Checkbutton(left_frame, text="Pulse per Rev Mode", variable=checkbox_4_imp_countA)
+        checkbox4.pack(anchor=tk.W)
+
         offset_imprev_frame = ttk.Frame(left_frame)
-        offset_imprev_frame.pack(anchor=tk.W)
+        offset_imprev_frame.pack(anchor=tk.W) 
         label3 = ttk.Label(offset_imprev_frame, text="Impulses per rev.")
         label3.grid(row=0, column=0, columnspan=2, padx=2, pady=5)
         impulse_per_revolution_text.set("100")
-        impulse_per_revolution_entry = ttk.Entry(offset_imprev_frame, textvariable=impulse_per_revolution_text, width=int(window_width/150))
+        impulse_per_revolution_entry = ttk.Entry(offset_imprev_frame, textvariable=impulse_per_revolution_text, width=int(window_width/150), state='disabled')
         impulse_per_revolution_entry.grid(row=1, column=0, padx=2, pady=5)
         button3 = ttk.Button(offset_imprev_frame, text="Send", width=window_width*0.05)
         button3.grid(row=1, column=1, padx=2, pady=2)
+        button2["state"] = "disabled"
         
 
 
@@ -253,14 +246,14 @@ def update_interface_on_channel_change():
         offset_text.set("0")
         offset_entry = ttk.Entry(offset_magn_frame, textvariable=offset_text, width=int(window_width/150), state='disabled')
         offset_entry.grid(row=1, column=0, padx=2, pady=5)
-        button1 = ttk.Button(offset_magn_frame, text="Send", width=window_width*0.05)
+        button1 = ttk.Button(offset_magn_frame, text="Send", width=window_width*0.05, command=lambda: send_command('P', offset_text))
         button1.grid(row=1, column=1, padx=2, pady=5)
         button1["state"] = "disabled"
         
         offset_scale_frame = offset_magn_frame
         #offset_scale_frame = ttk.Frame(left_frame)
         #offset_scale_frame.pack(anchor=tk.W)
-        label2 = ttk.Label(offset_scale_frame, text="Offset Scale:")#(min 0.001)")
+        label2 = ttk.Label(offset_scale_frame, text="Offset Scale:(min 0.001)")
         label2.grid(row=3, column=0, columnspan=2, padx=2, pady=5)
         offset_scale_text.set("1.000")
         offset_scale_entry = ttk.Entry(offset_scale_frame, textvariable=offset_scale_text, width=int(window_width/150), state='disabled')
@@ -271,21 +264,22 @@ def update_interface_on_channel_change():
 
     elif selected_option == "Channel C":
         # Add radio buttons for Option 3
-        checkbox4 = ttk.Checkbutton(left_frame, text="Run/Stop", variable=checkbox_4_run)
-        checkbox4.pack(anchor=tk.W)
-        checkbox5 = ttk.Checkbutton(left_frame, text="Internal/External", variable=checkbox_5_external)
+        checkbox5 = ttk.Checkbutton(left_frame, text="Run/Stop", variable=checkbox_5_run)
         checkbox5.pack(anchor=tk.W)
-        checkbox6 = ttk.Checkbutton(left_frame, text="Imp/Count", variable=checkbox_6_imp_count)
+        checkbox6 = ttk.Checkbutton(left_frame, text="Internal/External", variable=checkbox_6_external)
         checkbox6.pack(anchor=tk.W)
+        checkbox7 = ttk.Checkbutton(left_frame, text="Pulse per Rev Mode", variable=checkbox_7_imp_countC)
+        checkbox7.pack(anchor=tk.W)
         offset_imprev_frame = ttk.Frame(left_frame)
         offset_imprev_frame.pack(anchor=tk.W)
         label3 = ttk.Label(offset_imprev_frame, text="Impulses per revolution")
         label3.grid(row=0, column=0, columnspan=2, padx=2, pady=5)
         impulse_per_revolution_text.set("100")
-        impulse_per_revolution_entry = ttk.Entry(offset_imprev_frame, textvariable=impulse_per_revolution_text, width=int(window_width/150))
+        impulse_per_revolution_entry = ttk.Entry(offset_imprev_frame, textvariable=impulse_per_revolution_text, width=int(window_width/150), state='disabled')
         impulse_per_revolution_entry.grid(row=1, column=0, padx=2, pady=5)
         button3 = ttk.Button(offset_imprev_frame, text="Send", width=window_width*0.05)
         button3.grid(row=1, column=1, padx=2, pady=2)
+        button3["state"] = "disabled"
             
     elif selected_option == "Power":
         # Add radio buttons for Option 3
@@ -294,8 +288,8 @@ def update_interface_on_channel_change():
             radio_button = ttk.Radiobutton(left_frame, text=f"mode: {power_modes[i]}", variable=radio_var, value=chr(65+i))
             radio_button.pack(anchor=tk.W)
         
-        checkbox7 = ttk.Checkbutton(left_frame, text="Attenuator", variable=checkbox_7_attenuator)
-        checkbox7.pack(anchor=tk.W)
+        checkbox8 = ttk.Checkbutton(left_frame, text="Attenuator", variable=checkbox_8_attenuator)
+        checkbox8.pack(anchor=tk.W)
         # Add a text frame and a button on the same line
         text_btn_frame = ttk.Frame(left_frame)
         text_btn_frame.pack(anchor=tk.W)
@@ -329,10 +323,11 @@ power_modes=["dBm",  "mW", "Vrms","Peak-Peak (Vpp)", "Vpeak (Vp)"]
 checkbox_1_edge = None
 checkbox_2_smooth = None
 checkbox_3_offset = None
-checkbox_4_run = None
-checkbox_5_external = None
-checkbox_6_imp_count = None
-checkbox_7_attenuator = None
+checkbox_4_imp_countA = None
+checkbox_5_run = None
+checkbox_6_external = None
+checkbox_7_imp_countC = None
+checkbox_8_attenuator = None
 # mode menu text entries
 attenuation_text = None
 offset_text = None
@@ -347,20 +342,23 @@ def main():
     global root, canvas, data_list, thread_stop_event, read_thread, data_queue
     global start_button, stop_button, com_port_var, channel_dropdown, left_frame, option_var, channel_options
     global checkbox_1_edge, checkbox_2_smooth
-    global checkbox_3_offset, checkbox_4_run
-    global checkbox_5_external, checkbox_6_imp_count
+    global checkbox_3_offset, checkbox_4_imp_countA, checkbox_5_run
+    global checkbox_6_external, checkbox_7_imp_countC, checkbox_8_attenuator
     global attenuation_text, window_width
     global attenuation_text, offset_text, offset_scale_text, impulse_per_revolution_text
 
     # Create the main window
     root = tk.Tk()
+    #initialise tkinter global variables
     checkbox_1_edge = tk.IntVar(value=0)
     checkbox_2_smooth = tk.IntVar(value=0)
     checkbox_3_offset = tk.IntVar(value=0)
-    checkbox_4_run = tk.IntVar(value=1)
-    checkbox_5_external = tk.IntVar(value=1)
-    checkbox_6_imp_count = tk.IntVar(value=0)
-    checkbox_7_attenuator = tk.IntVar(value=0)
+    checkbox_4_imp_countA = tk.IntVar(value=0)
+    checkbox_5_run = tk.IntVar(value=1)
+    checkbox_6_external = tk.IntVar(value=1)
+    checkbox_7_imp_countC = tk.IntVar(value=0)
+    checkbox_8_attenuator = tk.IntVar(value=0)
+
     attenuation_text = tk.StringVar()
     offset_text = tk.StringVar()
     offset_scale_text = tk.StringVar()

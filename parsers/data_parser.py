@@ -6,7 +6,7 @@ message_format = {
     'B': ('dev_to_pc',  'Frequency Channel B',              'in uHz',),
     'C': ('dev_to_pc',  'Counter Channel C',                'in Count',),
     'D': ('dev_to_pc',  'Power Channel PWR',                'in 0.1dBm',),
-    'E': ('dev_to_pc',  'Current Channel',                  '0 = A, 1 = B, 2 = C, 3 = PWR',),
+    'E': ('bi_dir',     'Current Channel',                  '0 = A, 1 = B, 2 = C, 3 = PWR',),
     'F': ('bi_dir',     'Channel A: Mode',                  '0 = FREQ, 1 = PER, 2 = RPM',),
     'G': ('bi_dir',     'Channel A: Rising/Falling Edge',   '0 = Rising, 1 = Falling',),
     'H': ('bi_dir',     'Channel A: Smooth Enabled?',       '0 = FALSE, 1 = TRUE',),
@@ -43,7 +43,7 @@ message_format = {
 def parse_data_message(data_message):
     # Split the data_message into its components
     components = data_message.strip(';').split(':')
-    
+
     if len(components) != 3:
         return "Unexpected number components in the message"
     ecn, code, data = components
