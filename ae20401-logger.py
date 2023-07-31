@@ -1,3 +1,9 @@
+""" Æ20401 Data Logger
+
+This script shows a graph of the data coming from an Æ20401 device from ascel electronics.
+
+The aim is to provide a linux option for the software, but the code should be multiplatform.
+"""
 import serial.tools.list_ports
 import serial
 import tkinter as tk
@@ -12,12 +18,19 @@ import numpy as np
 from time import sleep
 from parsers.data_parser import parse_data_message, message_format
 
-# Function to fetch available COM ports
 def fetch_serial_ports():
+""" Function to fetch available COM ports
+
+Returns
+-------
+ports : list
+    a list of available ports
+"""
+
     return [port.device for port in serial.tools.list_ports.comports()]
 
-# Function to update the graph
 def update_graph():
+""" Function to update the graph"""
     first_code = data_list[0][2]
     if first_code == 'C':
         if all(char == first_code for char in data_list[:][2]):
@@ -35,8 +48,9 @@ def update_graph():
             plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
             canvas.draw()
 
-# Function to save data to a CSV file
 def save_to_csv():
+""" Saves the data_list to a csv file
+"""
     global data_list
     file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV Files", "*.csv")])
     if file_path:
@@ -46,8 +60,19 @@ def save_to_csv():
                 timestamp, ecn, code, data = entry
                 file.write(f"{timestamp},{ecn},{code},{data}\n")
 
-# Function to send a command down the serial port
 def send_command(ser, command, data):
+"""send a command down the serial port
+
+Parameters
+----------
+ser : serial.serialposix.Serial
+    an open serial port to the ae20401
+command: string
+    string of the command to send (commands are found in data_parser.message_format)
+data:   string
+    data to send with the command see ae20401 manual
+"""
+
     if command == 'P':
         ser.send(f"401:{command}:{data}:;")
     elif command == 'Q':
@@ -55,8 +80,19 @@ def send_command(ser, command, data):
     else:
         pass
 
-# Function to read data from the selected COM port (in a separate thread)
 def read_serial_data_in_thread(ser, stop_event, data_queue):
+""" Function to read data from the selected COM port (in a separate thread)
+
+Parameters
+----------
+ser : serial.serialposix.Serial
+    an open serial port to the ae20401
+stop_event: threading.Event()
+    an event to tell this thread when to stop executing (if the user has closed the window or pressed 'stop')
+data_queue: queue.Queue()
+    a queue to put the received data into
+"""
+
     global root
     charLim = 25
     chars = 0
@@ -95,8 +131,9 @@ def read_serial_data_in_thread(ser, stop_event, data_queue):
     except serial.SerialException as e:
         print("Error:", e)
     
-# Function to handle the "Start" button click
 def start_button_click():
+"""'Start' button click handler - starts logging data
+"""
     global thread_stop_event, start_button, stop_button, serialCon, data_list, data_queue, read_thread
 
     start_button["state"] = "disabled"
@@ -121,8 +158,15 @@ def start_button_click():
         except:
             print("Error connecting to serial")
 
-# Function to process received data from the queue and update the graph
 def process_received_data(data_queue):
+"""Process received data from the queue and update the graph
+
+Parameters
+----------
+data_queue: queue.Queue()
+    a queue to put the received data into
+"""
+
     global data_list, thread_stop_event
     try:
         while True:
@@ -135,14 +179,19 @@ def process_received_data(data_queue):
         root.after(100, process_received_data, data_queue)  # Schedule the function to be called again after a delay
     
 def stop_button_click():
+"""'Stop' button click handler - stops logging data
+"""
     global start_button, stop_button, serial
     stop_button["state"] = "disabled"
     start_button["state"] = "active"
     stop_data_acquisition()
     
 
-# Function to stop the data acquisition thread
+
 def stop_data_acquisition():
+""" Function to stop the data acquisition thread
+"""
+
     global serialCon, read_thread, thread_stop_event
     print("set stop event")
     thread_stop_event.set()
@@ -154,15 +203,17 @@ def stop_data_acquisition():
     if serialCon is not None:
        serialCon.__del__() #
 
-# Function to handle the window closing event
 def on_closing():
+"""Function to handle the window closing event.  Exits uncleanly if the window doesn't close!
+"""
     stop_data_acquisition()
     root.destroy()
-    sleep(0.5)
+    sleep(0.5) # data aquisition thread updates every 0.1s, but to be really sure...
     exit()
 
-# Function to update the interface items based on the selected option
 def update_interface_on_channel_change():
+"""Update the interface items based on the selected channel in the dropdown (or from the device?)
+"""
     global option_var, modes, left_frame, power_modes
     global checkbox_1_edge, checkbox_2_smooth
     global checkbox_3_offset, checkbox_4_run
@@ -226,8 +277,6 @@ def update_interface_on_channel_change():
         button3.grid(row=1, column=1, padx=2, pady=2)
         button2["state"] = "disabled"
         
-
-
     elif selected_option == "Channel B":
         # Add UI options for Channel B
         radio_var = tk.StringVar(value="1")
@@ -303,6 +352,8 @@ def update_interface_on_channel_change():
         button["state"] = "disabled"
 
 def on_dropdown_select(event):
+""" Handle the dropdown being used by the user
+"""
     update_interface_on_channel_change()
 
 ### GLOBALS ###
@@ -336,9 +387,8 @@ impulse_per_revolution_text = None
 
 window_width = 0
 
-# Main function to create the GUI and start the application
 def main():
-
+# Main function to create the GUI and start the application
     global root, canvas, data_list, thread_stop_event, read_thread, data_queue
     global start_button, stop_button, com_port_var, channel_dropdown, left_frame, option_var, channel_options
     global checkbox_1_edge, checkbox_2_smooth
@@ -399,10 +449,8 @@ def main():
     save_button.pack(side=tk.LEFT, padx=5, pady=5)
 
     # Add the new dropdown to the toolbar
-    #channel_options = ["Channel A", "Channel B", "Channel C"]
     channel_dropdown = ttk.Combobox(toolbar, textvariable=option_var, values=channel_options)#, state="readonly")
     channel_dropdown.pack(side=tk.LEFT, padx=5, pady=5)
-    #option_var.set(channel_options[2])
 
     # Bind the dropdown's selection event to update the interface items
     channel_dropdown.bind("<<ComboboxSelected>>", on_dropdown_select)
