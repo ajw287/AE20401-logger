@@ -1,14 +1,16 @@
 
 import serial.tools.list_ports
 import serial
+import queue
 from datetime import datetime
+
 
 from parsers.data_parser import parse_data_message, message_format
 
 class serialDevice:
 
     ser = None
-    data_queue = None
+    data_queue = None # a temp store for passing data from the serial to the data_list in main
     connected = False
     synchronised = False
     charLim = 50
@@ -16,24 +18,15 @@ class serialDevice:
     def __init__(self, max_message_length=50):
         self.synchronised = False
         self.charLim = max_message_length
+        self.data_queue =  queue.Queue()
 
     def connect(self, selected_port):
+        # Create a queue to hold the received data
         try:
             self.ser = serial.Serial(selected_port, baudrate=9600, timeout=1)
-            # Clear data_list before starting a new data acquisition
-            
-            # Create a queue to hold the received data
-            data_queue = queue.Queue()
-            # Start a new thread to read data from the serial port
-            read_thread = threading.Thread(target=read_serial_data_in_thread, args=(ser, thread_stop_event, data_queue))
-            #thread = threading.Thread(target=read_serial_data_in_thread, args=(selected_port, thread_stop_event))
-            read_thread.daemon = True  # Set the thread as a daemon so that it will stop when the main thread stops
-            read_thread.start()
-            # Update the graph when new data arrives
-            root.after(100, process_received_data, data_queue)
-            #serialCon = ser
             connected = True
-        except:
+        except Exception as e:
+            print(e)
             print("Error connecting to serial")
 
     def fetch_serial_ports(self):
@@ -100,12 +93,12 @@ class serialDevice:
             a string of the data
         """
         try:
-            line = ser.read(6).decode("utf-8")
+            line = self.ser.read(6).decode("utf-8")
             # Note that timestamps aren't strict, but at the whims of python/OS
             timestamp = datetime.now().strftime('%H:%M:%S.%f')  # Generate timestamp for the line
             serial_char = b"x"
             while serial_char != ";":
-                serial_char = ser.read(1).decode("utf-8")
+                serial_char = self.ser.read(1).decode("utf-8")
                 line += serial_char
             message_contents = parse_data_message(line) 
             #print('device:%s code:%s data:$%.2f' % (ecn, code, data))
@@ -122,8 +115,10 @@ class serialDevice:
     
     def disconnect(self):
         try:
+            connected = False
+            synchronised = False
             if self.ser is not None:
-                self.__del__() #
+                self.ser.__del__() #
         except serial.SerialException as e:
             print("Error:", e)
 

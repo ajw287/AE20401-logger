@@ -43,10 +43,17 @@ message_format = {
 def parse_data_message(data_message):
     # Split the data_message into its components
     components = data_message.strip(';').split(':')
-
-    if len(components) != 3:
+    # Process
+    l = len(components)
+    if l == 3:
+        ecn, code, data = components
+    elif l == 4 and components[0] == "":
+        waste, ecn, code, data = components
+    elif l == 4 and components[3] == "":
+        ecn, code, data, waste = components
+    else:
+        print(components)
         return "Unexpected number components in the message"
-    ecn, code, data = components
     
     # Check if the ECN is 401 as it is always expected for this device
     if ecn != '401':
@@ -55,7 +62,7 @@ def parse_data_message(data_message):
     # Check if the code is in the message_format
     if code not in message_format:
         return "Invalid CODE"
-    
+
     return ecn, code, data
 
 # Example usage:

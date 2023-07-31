@@ -20,23 +20,26 @@ from devices.serialDevice import serialDevice
 
 def update_graph():
     """ Function to update the graph"""
-
-    first_code = data_list[0][2]
-    if first_code == 'C':
-        if all(char == first_code for char in data_list[:][2]):
-            timestamps = [entry[0] for entry in data_list]
-            data = [entry[3] for entry in data_list]
-            plt.clf()
-            plt.plot(timestamps, data, marker='x')
-            if len(timestamps) >10:
-                tick_size = int(len(timestamps)/10)
-                plt.xticks(timestamps[::tick_size])
-            plt.xlabel("Time")
-            plt.ylabel("Counts")
-            plt.title("Serial Data Graph")
-            plt.grid(True)
-            plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
-            canvas.draw()
+    if data_list:  # empty list is false
+        first_code = data_list[0][2]
+        if first_code == 'C':
+            #if all(char == first_code for char in data_list[:][2]):
+            if all(entry[2] == first_code for entry in data_list):
+                timestamps = [entry[0] for entry in data_list]
+                data = [entry[3] for entry in data_list]
+                plt.clf()
+                plt.plot(timestamps, data, marker='x')
+                if len(timestamps) >10:
+                    tick_size = int(len(timestamps)/10)
+                    plt.xticks(timestamps[::tick_size])
+                plt.xlabel("Time")
+                plt.ylabel("Counts")
+                plt.title("Serial Data Graph")
+                plt.grid(True)
+                plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
+                canvas.draw()
+            else:
+                print("heterogenous data!  Not sure what to plot...")
 
 def save_to_csv():
     """ Saves the data_list to a csv file
@@ -56,12 +59,10 @@ def read_serial_data_in_thread(device, stop_event):
 
     Parameters
     ----------
-    ser : serial.serialposix.Serial
-        an open serial port to the ae20401
+    device : serialDevice
+        a class to control the serial port to the ae20401
     stop_event: threading.Event()
         an event to tell this thread when to stop executing (if the user has closed the window or pressed 'stop')
-    data_queue: queue.Queue()
-        a queue to put the received data into
     """
 
     global root
@@ -69,35 +70,26 @@ def read_serial_data_in_thread(device, stop_event):
     chars = 0
 
     device.synchronise()
-    #syncd = False
-    #while (syncd == False) and charLim > chars:
-    #    serial_char = ser.read(1)
-    #    #print(serial_char)
-    #    chars += 1
-    #    if serial_char == b";":
-    #        print("match!")
-    #        syncd = True
-    #if(syncd == False):
-    #    print("something went wrong with the syncing...")
-    #    exit()
     while not thread_stop_event.is_set():
         timestamp, ecn, code, data = device.get_next_message()
-        data_queue.put((timestamp, ecn, code, data))
+        device.data_queue.put((timestamp, ecn, code, data))
 
     
 def start_button_click():
     """'Start' button click handler - starts logging data
     """
 
-    global thread_stop_event, start_button, stop_button, device, data_list, data_queue, read_thread
+    global thread_stop_event, start_button, stop_button, device, data_list, read_thread
 
     start_button["state"] = "disabled"
     stop_button["state"] = "active"
-
+    
     selected_port = com_port_var.get()
     if selected_port:
         try:
+
             device.connect(selected_port)
+
             # Clear data_list before starting a new data acquisition
             data_list.clear()
             read_thread = threading.Thread(target=read_serial_data_in_thread, args=(device, thread_stop_event))
@@ -105,34 +97,29 @@ def start_button_click():
             read_thread.daemon = True  # Set the thread as a daemon so that it will stop when the main thread stops
             read_thread.start()
             # Update the graph when new data arrives
-            root.after(100, process_received_data, data_queue)
+            root.after(100, process_received_data)
             
         except:
             print("Failed to connect to device")
             ## Create a queue to hold the received data
-            #data_queue = queue.Queue()
+            
             ## Start a new thread to read data from the serial port
             #serialCon = ser
 
-def process_received_data(data_queue):
+def process_received_data():
     """Process received data from the queue and update the graph
-
-    Parameters
-    ----------
-    data_queue: queue.Queue()
-        a queue to put the received data into
     """
 
-    global data_list, thread_stop_event
+    global data_list, thread_stop_event, device
     try:
         while True:
-            timestamp, ecn, code, data = data_queue.get_nowait()
+            timestamp, ecn, code, data = device.data_queue.get_nowait()
             data_list.append([timestamp, ecn, code, data])
     except queue.Empty: 
         pass
     update_graph()
     if not thread_stop_event.is_set():
-        root.after(100, process_received_data, data_queue)  # Schedule the function to be called again after a delay
+        root.after(100, process_received_data)  # Schedule the function to be called again after a delay
     
 def stop_button_click():
     """'Stop' button click handler - stops logging data
@@ -317,11 +304,9 @@ def on_dropdown_select(event):
 
 ### GLOBALS ###
 data_list = [] # List to hold the processed received data
-data_queue = None # passes data from serial
 # create a thread as a global
 read_thread = None
-# global for holding the serial connection.
-#serialCon = None
+# global device interface class
 device = serialDevice()
 
 channel_options = ["Channel A", "Channel B", "Channel C", "Power"]
@@ -349,7 +334,7 @@ window_width = 0
 
 def main():
     # Main function to create the GUI and start the application
-    global root, canvas, data_list, thread_stop_event, read_thread, data_queue
+    global root, canvas, data_list, thread_stop_event, read_thread
     global start_button, stop_button, com_port_var, channel_dropdown, left_frame, option_var, channel_options
     global checkbox_1_edge, checkbox_2_smooth
     global checkbox_3_offset, checkbox_4_imp_countA, checkbox_5_run
@@ -394,7 +379,7 @@ def main():
 
     # Fetch available COM ports
     com_ports = device.fetch_serial_ports()
-    com_port_var = tk.StringVar(value=com_ports[0]) if com_ports else tk.StringVar()
+    com_port_var = tk.StringVar(value=com_ports[-1]) if com_ports else tk.StringVar()
     com_port_dropdown = ttk.Combobox(toolbar, textvariable=com_port_var, values=com_ports, state="readonly")
     com_port_dropdown.pack(side=tk.LEFT, padx=5, pady=5)
 
