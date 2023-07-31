@@ -60,6 +60,22 @@ def parse_data_message(data_message):
 
 # Example usage:
 if __name__ == "__main__":
-    data_message = "401:F:0:;"
+    data_message = "401:C:0"
     result = parse_data_message(data_message)
     print(result)
+    test_list = (   ["401:C:0",("401","C","0")],
+                ["402:C:501988010", ("401","C","501988010")],
+            )
+    for i, test_command in enumerate(test_list):
+            print(test_command)
+            print(i)
+            result = parse_data_message(test_command[0])
+            for r, e in zip(result, test_command[1]):
+                print(r)
+                print(e)
+            #for data_message, e1,e2,e3  in (test_command[0], test_command[1]):
+            #    print("dm")
+            #    print(data_message)
+            #    print("e")
+            #    print(expected)
+            #    result = parse_data_message(data_message)

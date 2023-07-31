@@ -2,7 +2,7 @@
 
 This script shows a graph of the data coming from an Æ20401 device from ascel electronics.
 
-The aim is to provide a linux option for the software, but the code should be multiplatform.
+The primary aim is to provide a linux option for the software, but the code should be multiplatform.
 """
 import serial.tools.list_ports
 import serial
@@ -19,18 +19,19 @@ from time import sleep
 from parsers.data_parser import parse_data_message, message_format
 
 def fetch_serial_ports():
-""" Function to fetch available COM ports
+    """ Function to fetch available COM ports
 
-Returns
--------
-ports : list
-    a list of available ports
-"""
+    Returns
+    -------
+    ports : list
+        a list of available ports
+    """
 
     return [port.device for port in serial.tools.list_ports.comports()]
 
 def update_graph():
-""" Function to update the graph"""
+    """ Function to update the graph"""
+
     first_code = data_list[0][2]
     if first_code == 'C':
         if all(char == first_code for char in data_list[:][2]):
@@ -49,8 +50,9 @@ def update_graph():
             canvas.draw()
 
 def save_to_csv():
-""" Saves the data_list to a csv file
-"""
+    """ Saves the data_list to a csv file
+    """
+
     global data_list
     file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV Files", "*.csv")])
     if file_path:
@@ -61,17 +63,17 @@ def save_to_csv():
                 file.write(f"{timestamp},{ecn},{code},{data}\n")
 
 def send_command(ser, command, data):
-"""send a command down the serial port
+    """send a command down the serial port
 
-Parameters
-----------
-ser : serial.serialposix.Serial
-    an open serial port to the ae20401
-command: string
-    string of the command to send (commands are found in data_parser.message_format)
-data:   string
-    data to send with the command see ae20401 manual
-"""
+    Parameters
+    ----------
+    ser : serial.serialposix.Serial
+        an open serial port to the ae20401
+    command: string
+        string of the command to send (commands are found in data_parser.message_format)
+    data:   string
+        data to send with the command see ae20401 manual
+    """
 
     if command == 'P':
         ser.send(f"401:{command}:{data}:;")
@@ -81,17 +83,17 @@ data:   string
         pass
 
 def read_serial_data_in_thread(ser, stop_event, data_queue):
-""" Function to read data from the selected COM port (in a separate thread)
+    """ Function to read data from the selected COM port (in a separate thread)
 
-Parameters
-----------
-ser : serial.serialposix.Serial
-    an open serial port to the ae20401
-stop_event: threading.Event()
-    an event to tell this thread when to stop executing (if the user has closed the window or pressed 'stop')
-data_queue: queue.Queue()
-    a queue to put the received data into
-"""
+    Parameters
+    ----------
+    ser : serial.serialposix.Serial
+        an open serial port to the ae20401
+    stop_event: threading.Event()
+        an event to tell this thread when to stop executing (if the user has closed the window or pressed 'stop')
+    data_queue: queue.Queue()
+        a queue to put the received data into
+    """
 
     global root
     charLim = 25
@@ -132,8 +134,9 @@ data_queue: queue.Queue()
         print("Error:", e)
     
 def start_button_click():
-"""'Start' button click handler - starts logging data
-"""
+    """'Start' button click handler - starts logging data
+    """
+
     global thread_stop_event, start_button, stop_button, serialCon, data_list, data_queue, read_thread
 
     start_button["state"] = "disabled"
@@ -159,13 +162,13 @@ def start_button_click():
             print("Error connecting to serial")
 
 def process_received_data(data_queue):
-"""Process received data from the queue and update the graph
+    """Process received data from the queue and update the graph
 
-Parameters
-----------
-data_queue: queue.Queue()
-    a queue to put the received data into
-"""
+    Parameters
+    ----------
+    data_queue: queue.Queue()
+        a queue to put the received data into
+    """
 
     global data_list, thread_stop_event
     try:
@@ -179,8 +182,9 @@ data_queue: queue.Queue()
         root.after(100, process_received_data, data_queue)  # Schedule the function to be called again after a delay
     
 def stop_button_click():
-"""'Stop' button click handler - stops logging data
-"""
+    """'Stop' button click handler - stops logging data
+    """
+
     global start_button, stop_button, serial
     stop_button["state"] = "disabled"
     start_button["state"] = "active"
@@ -189,8 +193,8 @@ def stop_button_click():
 
 
 def stop_data_acquisition():
-""" Function to stop the data acquisition thread
-"""
+    """ Function to stop the data acquisition thread
+    """
 
     global serialCon, read_thread, thread_stop_event
     print("set stop event")
@@ -204,16 +208,18 @@ def stop_data_acquisition():
        serialCon.__del__() #
 
 def on_closing():
-"""Function to handle the window closing event.  Exits uncleanly if the window doesn't close!
-"""
+    """Function to handle the window closing event.  Exits uncleanly if the window doesn't close!
+    """
+
     stop_data_acquisition()
     root.destroy()
     sleep(0.5) # data aquisition thread updates every 0.1s, but to be really sure...
     exit()
 
 def update_interface_on_channel_change():
-"""Update the interface items based on the selected channel in the dropdown (or from the device?)
-"""
+    """Update the interface items based on the selected channel in the dropdown (or from the device?)
+    """
+
     global option_var, modes, left_frame, power_modes
     global checkbox_1_edge, checkbox_2_smooth
     global checkbox_3_offset, checkbox_4_run
@@ -352,14 +358,13 @@ def update_interface_on_channel_change():
         button["state"] = "disabled"
 
 def on_dropdown_select(event):
-""" Handle the dropdown being used by the user
-"""
+    """ Handle the dropdown being used by the user
+    """
     update_interface_on_channel_change()
 
 ### GLOBALS ###
-# List to hold the received data
-data_list = []
-data_queue = None
+data_list = [] # List to hold the processed received data
+data_queue = None # passes data from serial
 # create a thread as a global
 read_thread = None
 # global for holding the serial connection.
@@ -388,7 +393,7 @@ impulse_per_revolution_text = None
 window_width = 0
 
 def main():
-# Main function to create the GUI and start the application
+    # Main function to create the GUI and start the application
     global root, canvas, data_list, thread_stop_event, read_thread, data_queue
     global start_button, stop_button, com_port_var, channel_dropdown, left_frame, option_var, channel_options
     global checkbox_1_edge, checkbox_2_smooth
