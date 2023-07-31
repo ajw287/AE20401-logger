@@ -21,16 +21,17 @@ from devices.serialDevice import serialDevice
 def update_graph():
     """ Function to update the graph"""
 
-    global option_var, channel_A_mode
+    global option_var, channel_A_mode, channel_B_mode
+    graph_colors = ["#7293CB", "#E1974C","#84BA5B", "#D35E60", "#808585", "#9067A7"]
     selected_option = option_var.get()
     if selected_option == "Channel A":
         mode = channel_A_mode.get()
+        command = 'A'
         if mode == "Frequency" and data_list:  # empty list is false - if we have data
-            print("hello")
-            timestamps = [entry[0] for entry in data_list if entry[2]=='A']
-            data = [int(entry[3])  for entry in data_list if entry[2]=='A']
+            timestamps = [entry[0] for entry in data_list if entry[2]==command]
+            data = [int(entry[3])/10E9  for entry in data_list if entry[2]==command]
             plt.clf()
-            plt.plot(timestamps, data, marker='x')
+            plt.plot(timestamps, data, marker='x', color = graph_colors[1])
             if len(timestamps) >10:
                 tick_size = int(len(timestamps)/10)
                 plt.xticks(timestamps[::tick_size])
@@ -41,20 +42,81 @@ def update_graph():
                     tick_size = int(len(data)/10)
                     plt.yticks(np.arange(min_v, max_v, step=(max_v-min_v)/10.0))
             plt.xlabel("Time / ms")
-            plt.ylabel(mode)
-            plt.title(selected_option + " " + mode)
+            plt.ylabel(mode + "/ Hz")
+            plt.title(selected_option + " " + mode + "")
+            plt.grid(True)
+            plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
+            canvas.draw()
+        elif mode == "Period"and data_list:  # empty list is false - if we have data
+            timestamps = [entry[0] for entry in data_list if entry[2]==command]
+            data = [1.0/ (int(entry[3])/10E9)  for entry in data_list if entry[2]==command]
+            plt.clf()
+            plt.plot(timestamps, data, marker='x', color = graph_colors[2])
+            if len(timestamps) >10:
+                tick_size = int(len(timestamps)/10)
+                plt.xticks(timestamps[::tick_size])
+            if len(data) >10:
+                min_v = min(data)
+                max_v = max(data)
+                if max_v-min_v > 1.0:
+                    tick_size = int(len(data)/10)
+                    plt.yticks(np.arange(min_v, max_v, step=(max_v-min_v)/10.0))
+            plt.xlabel("Time / ms")
+            plt.ylabel(mode + "/ s")
+            plt.title(selected_option + " " + mode + "")
             plt.grid(True)
             plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
             canvas.draw()
     elif selected_option == "Channel B":
-        pass
+        command = 'B'
+        mode = channel_A_mode.get()
+        if mode == "Frequency" and data_list:  # empty list is false - if we have data
+            timestamps = [entry[0] for entry in data_list if entry[2]==command]
+            data = [int(entry[3])/10E9  for entry in data_list if entry[2]==command]
+            plt.clf()
+            plt.plot(timestamps, data, marker='x', color = graph_colors[3])
+            if len(timestamps) >10:
+                tick_size = int(len(timestamps)/10)
+                plt.xticks(timestamps[::tick_size])
+            if len(data) >10:
+                min_v = min(data)
+                max_v = max(data)
+                if max_v-min_v > 1.0:
+                    tick_size = int(len(data)/10)
+                    plt.yticks(np.arange(min_v, max_v, step=(max_v-min_v)/10.0))
+            plt.xlabel("Time / ms")
+            plt.ylabel(mode + "/ Hz")
+            plt.title(selected_option + " " + mode + "")
+            plt.grid(True)
+            plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
+            canvas.draw()
+        elif mode == "Period"and data_list:  # empty list is false - if we have data
+            timestamps = [entry[0] for entry in data_list if entry[2]==command]
+            data = [1.0/ (int(entry[3])/10E9)  for entry in data_list if entry[2]==command]
+            plt.clf()
+            plt.plot(timestamps, data, marker='x', color = graph_colors[4])
+            if len(timestamps) >10:
+                tick_size = int(len(timestamps)/10)
+                plt.xticks(timestamps[::tick_size])
+            if len(data) >10:
+                min_v = min(data)
+                max_v = max(data)
+                if max_v-min_v > 1.0:
+                    tick_size = int(len(data)/10)
+                    plt.yticks(np.arange(min_v, max_v, step=(max_v-min_v)/10.0))
+            plt.xlabel("Time / ms")
+            plt.ylabel(mode + "/ s")
+            plt.title(selected_option + " " + mode + "")
+            plt.grid(True)
+            plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
+            canvas.draw()
     elif selected_option == "Channel C":
         if data_list:  # empty list is false - if we have data
             # plot only data with a 'C'
             timestamps = [entry[0] for entry in data_list if entry[2]=='C']
             data = [int(entry[3])  for entry in data_list if entry[2]=='C']
             plt.clf()
-            plt.plot(timestamps, data, marker='x')
+            plt.plot(timestamps, data, marker='x', color = graph_colors[5])
             if len(timestamps) >10:
                 tick_size = int(len(timestamps)/10)
                 plt.xticks(timestamps[::tick_size])
@@ -131,6 +193,7 @@ def read_serial_data_in_thread(device, stop_event):
     chars = 0
 
     device.synchronise()
+    tellUser("getting data via USB")
     while not thread_stop_event.is_set():
         timestamp, ecn, code, data = device.get_next_message()
         device.data_queue.put((timestamp, ecn, code, data))
@@ -171,10 +234,8 @@ def process_received_data():
     global data_list, thread_stop_event, device
     try:
         while True:
-            tellUser("getting data via USB")
             timestamp, ecn, code, data = device.data_queue.get_nowait()
             data_list.append([timestamp, ecn, code, data])
-            tellUser("getting data via USB")
     except queue.Empty: 
         pass
     update_graph()
@@ -185,10 +246,11 @@ def stop_button_click():
     """'Stop' button click handler - stops logging data
     """
 
-    global start_button, stop_button, serial
+    global start_button, stop_button
     stop_button["state"] = "disabled"
     # serial interface doesn't seem to restart...
     #start_button["state"] = "active"
+    #tellUser("Recording Stopped - save data or restart")
     stop_data_acquisition()
     
 
@@ -198,13 +260,14 @@ def stop_data_acquisition():
     """
 
     global device, read_thread, thread_stop_event
-    print("set stop event")
+    #print("set stop event")
     thread_stop_event.set()
     sleep(0.15) # blocking wait for the last 'after' command
-    print("waiting for thread to stop")
+    tellUser("Recording Stopped - save data or restart")
+    #print("waiting for thread to stop")
     if read_thread is not None:
         read_thread.join()  # Wait for the thread to terminate gracefully
-        print("successful")
+        #print("successful")
     if device is not None:
         device.disconnect()
 
