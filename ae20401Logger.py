@@ -18,6 +18,44 @@ from time import sleep
 from parsers.data_parser import parse_data_message, message_format
 from devices.serialDevice import serialDevice
 
+def draw_graph(timestamps, data, color, xlabel, ylabel, title):
+    """ Draws the graph to the plt
+
+    Parameters
+    ----------
+    timestamps : list
+        x axis of the graph - time that messges were recieved
+    data: list
+        message data
+    color: string
+        Hex value of the color to plot
+    xlabel: string
+        the label for the x axis
+    ylabel: string
+        the label for the y axis
+    title: string
+        the title for the chart
+    """
+
+    global plt, canvas
+    plt.clf()
+    plt.plot(timestamps, data, marker='x', color = color)
+    if len(timestamps) >10:
+        tick_size = int(len(timestamps)/10)
+        plt.xticks(timestamps[::tick_size])
+    if len(data) >10:
+        min_v = min(data)
+        max_v = max(data)
+        if max_v-min_v > 1.0:
+            tick_size = int(len(data)/10)
+            plt.yticks(np.arange(min_v, max_v, step=(max_v-min_v)/10.0))
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.grid(True)
+    plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
+    canvas.draw()
+
 def update_graph():
     """ Function to update the graph"""
 
@@ -30,108 +68,58 @@ def update_graph():
         if mode == "Frequency" and data_list:  # empty list is false - if we have data
             timestamps = [entry[0] for entry in data_list if entry[2]==command]
             data = [int(entry[3])/10E9  for entry in data_list if entry[2]==command]
-            plt.clf()
-            plt.plot(timestamps, data, marker='x', color = graph_colors[1])
-            if len(timestamps) >10:
-                tick_size = int(len(timestamps)/10)
-                plt.xticks(timestamps[::tick_size])
-            if len(data) >10:
-                min_v = min(data)
-                max_v = max(data)
-                if max_v-min_v > 1.0:
-                    tick_size = int(len(data)/10)
-                    plt.yticks(np.arange(min_v, max_v, step=(max_v-min_v)/10.0))
-            plt.xlabel("Time / ms")
-            plt.ylabel(mode + "/ Hz")
-            plt.title(selected_option + " " + mode + "")
-            plt.grid(True)
-            plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
-            canvas.draw()
+            draw_graph( timestamps,
+                        data,
+                        color = graph_colors[1],
+                        xlabel = "Time / ms",
+                        ylabel = mode + "/ Hz",
+                        title = selected_option + " " + mode + "",
+                        )
         elif mode == "Period"and data_list:  # empty list is false - if we have data
             timestamps = [entry[0] for entry in data_list if entry[2]==command]
             data = [1.0/ (int(entry[3])/10E9)  for entry in data_list if entry[2]==command]
-            plt.clf()
-            plt.plot(timestamps, data, marker='x', color = graph_colors[2])
-            if len(timestamps) >10:
-                tick_size = int(len(timestamps)/10)
-                plt.xticks(timestamps[::tick_size])
-            if len(data) >10:
-                min_v = min(data)
-                max_v = max(data)
-                if max_v-min_v > 1.0:
-                    tick_size = int(len(data)/10)
-                    plt.yticks(np.arange(min_v, max_v, step=(max_v-min_v)/10.0))
-            plt.xlabel("Time / ms")
-            plt.ylabel(mode + "/ s")
-            plt.title(selected_option + " " + mode + "")
-            plt.grid(True)
-            plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
-            canvas.draw()
+            draw_graph( timestamps,
+                        data,
+                        color = graph_colors[2],
+                        xlabel = "Time / ms",
+                        ylabel = mode + "/ s",
+                        title = selected_option + " " + mode + "",
+                        )
     elif selected_option == "Channel B":
         command = 'B'
-        mode = channel_A_mode.get()
+        mode = channel_B_mode.get()
         if mode == "Frequency" and data_list:  # empty list is false - if we have data
             timestamps = [entry[0] for entry in data_list if entry[2]==command]
             data = [int(entry[3])/10E9  for entry in data_list if entry[2]==command]
-            plt.clf()
-            plt.plot(timestamps, data, marker='x', color = graph_colors[3])
-            if len(timestamps) >10:
-                tick_size = int(len(timestamps)/10)
-                plt.xticks(timestamps[::tick_size])
-            if len(data) >10:
-                min_v = min(data)
-                max_v = max(data)
-                if max_v-min_v > 1.0:
-                    tick_size = int(len(data)/10)
-                    plt.yticks(np.arange(min_v, max_v, step=(max_v-min_v)/10.0))
-            plt.xlabel("Time / ms")
-            plt.ylabel(mode + "/ Hz")
-            plt.title(selected_option + " " + mode + "")
-            plt.grid(True)
-            plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
-            canvas.draw()
+            draw_graph( timestamps,
+                        data,
+                        color = graph_colors[3],
+                        xlabel = "Time / ms",
+                        ylabel = mode + "/ Hz",
+                        title = selected_option + " " + mode + "",
+                        )
         elif mode == "Period"and data_list:  # empty list is false - if we have data
             timestamps = [entry[0] for entry in data_list if entry[2]==command]
             data = [1.0/ (int(entry[3])/10E9)  for entry in data_list if entry[2]==command]
-            plt.clf()
-            plt.plot(timestamps, data, marker='x', color = graph_colors[4])
-            if len(timestamps) >10:
-                tick_size = int(len(timestamps)/10)
-                plt.xticks(timestamps[::tick_size])
-            if len(data) >10:
-                min_v = min(data)
-                max_v = max(data)
-                if max_v-min_v > 1.0:
-                    tick_size = int(len(data)/10)
-                    plt.yticks(np.arange(min_v, max_v, step=(max_v-min_v)/10.0))
-            plt.xlabel("Time / ms")
-            plt.ylabel(mode + "/ s")
-            plt.title(selected_option + " " + mode + "")
-            plt.grid(True)
-            plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
-            canvas.draw()
+            draw_graph( timestamps,
+                        data,
+                        color = graph_colors[4],
+                        xlabel = "Time / ms",
+                        ylabel = mode + "/ s",
+                        title = selected_option + " " + mode + "",
+                        )
     elif selected_option == "Channel C":
         if data_list:  # empty list is false - if we have data
             # plot only data with a 'C'
             timestamps = [entry[0] for entry in data_list if entry[2]=='C']
             data = [int(entry[3])  for entry in data_list if entry[2]=='C']
-            plt.clf()
-            plt.plot(timestamps, data, marker='x', color = graph_colors[5])
-            if len(timestamps) >10:
-                tick_size = int(len(timestamps)/10)
-                plt.xticks(timestamps[::tick_size])
-            if len(data) >10:
-                min_v = min(data)
-                max_v = max(data)
-                if max_v-min_v > 1.0:
-                    tick_size = int(len(data)/10)
-                    plt.yticks(np.arange(min_v, max_v, step=(max_v-min_v)/10.0))
-            plt.xlabel("Time")
-            plt.ylabel("Counts")
-            plt.title("Channel C - Counter")
-            plt.grid(True)
-            plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
-            canvas.draw()
+            draw_graph( timestamps,
+                        data,
+                        color = graph_colors[5],
+                        xlabel = "Time / ms",
+                        ylabel = "Counts" + "/ pulses",
+                        title = selected_option + " " + "Counter" + "",
+                        )
     elif selected_option == "Power":
         tellUser("unimplemented option selected")
         pass
@@ -494,6 +482,7 @@ def main():
     global device
     global tell_user_label
     global channel_A_mode, channel_B_mode, power_mode
+    global plt
     # Create the main window
     root = tk.Tk()
     #initialise tkinter global variables
