@@ -77,7 +77,7 @@ def update_graph():
                         )
         elif mode == "Period"and data_list:  # empty list is false - if we have data
             timestamps = [entry[0] for entry in data_list if entry[2]==command]
-            data = [1.0/ (int(entry[3])/10E9)  for entry in data_list if entry[2]==command]
+            data = [1.0/ (int(entry[3])/10E9) if int(entry[3]) else 0  for entry in data_list if entry[2]==command] # this horrible line helps ensure that div/0 doesn't happen
             draw_graph( timestamps,
                         data,
                         color = graph_colors[2],
@@ -100,7 +100,7 @@ def update_graph():
                         )
         elif mode == "Period"and data_list:  # empty list is false - if we have data
             timestamps = [entry[0] for entry in data_list if entry[2]==command]
-            data = [1.0/ (int(entry[3])/10E9)  for entry in data_list if entry[2]==command]
+            data = [1.0/ (int(entry[3])/10E9) if int(entry[3]) else 0  for entry in data_list if entry[2]==command] # this horrible line helps ensure that div/0 doesn't happen
             draw_graph( timestamps,
                         data,
                         color = graph_colors[4],
@@ -270,6 +270,31 @@ def offset_enabled_clicked():
     if offset_enabled != None:
         device.send_command(command, offset_enabled)
 
+def check_text_and_send(command, text_input, int_or_float='int'):
+    print("called this:")
+    if int_or_float == 'float':
+        try:
+            number_as_integer = float(text_input)
+            device.send_command(command, text_input)
+        except ValueError:
+            tellUser("Invalid Input - check the text boxes")
+    else: # must be int
+        try:
+            number_as_integer = int(text_input)
+            device.send_command(command, text_input)
+        except ValueError:
+            tellUser("Invalid Input - check the text boxes")
+
+def set_channel_Mode(command, text):
+    if text == "Frequency":
+        mode_set = '0'
+    elif text == "Period":
+        mode_set = '1'
+    elif text == "RPM":
+        mode_set = '2'
+    else:
+        return
+    device.send_command(command, mode_set)
 
 def update_interface_on_channel_change():
     """Update the interface items based on the selected channel in the dropdown (or from the device?)
@@ -298,7 +323,7 @@ def update_interface_on_channel_change():
         # Add UI options for Channel A
         #channel_A_mode = tk.StringVar(value=f"{modes[0]}")
         for i in range(3):
-            radio_button = ttk.Radiobutton(left_frame, text=f"{modes[i]}", variable=channel_A_mode, value=f"{modes[i]}")
+            radio_button = ttk.Radiobutton(left_frame, text=f"{modes[i]}", variable=channel_A_mode, value=f"{modes[i]}", command=lambda: set_channel_Mode('F', channel_A_mode.get(),))
             radio_button.pack(anchor=tk.W)
         channel_A_mode.set(f"{modes[0]}")
         checkbox1 = ttk.Checkbutton(left_frame, text="Rising Edge", variable=checkbox_1_edge, command=lambda: device.send_command('G', -1 * (int(checkbox_1_edge.get())-1) ))
@@ -315,7 +340,7 @@ def update_interface_on_channel_change():
         offset_text.set("0")
         offset_entry = ttk.Entry(offset_magn_frame, textvariable=offset_text, width=int(window_width/150), state='disabled')
         offset_entry.grid(row=1, column=0, padx=2, pady=5)
-        button1 = ttk.Button(offset_magn_frame, text="Send", width=window_width*0.05, command=lambda: device.send_command('J', offset_text.get()))
+        button1 = ttk.Button(offset_magn_frame, text="Send", width=window_width*0.05, command=lambda: check_text_and_send('J', offset_text.get(), 'int'))
         button1.grid(row=1, column=1, padx=2, pady=5)
         button1["state"] = "disabled"
         
@@ -326,7 +351,7 @@ def update_interface_on_channel_change():
         offset_scale_text.set("1.000")
         offset_scale_entry = ttk.Entry(offset_scale_frame, textvariable=offset_scale_text, width=int(window_width/150), state='disabled')
         offset_scale_entry.grid(row=1, column=0, padx=2, pady=5)
-        button2 = ttk.Button(offset_scale_frame, text="Send", width=window_width*0.05, command=lambda: device.send_command('K', offset_scale_text.get()))
+        button2 = ttk.Button(offset_scale_frame, text="Send", width=window_width*0.05, command=lambda: check_text_and_send('K', offset_scale_text.get(), 'float'))
         button2.grid(row=1, column=1, padx=2, pady=5)
         button2["state"] = "disabled"
 
@@ -337,7 +362,7 @@ def update_interface_on_channel_change():
         impulse_per_revolution_text.set("100")
         impulse_per_revolution_entry = ttk.Entry(offset_imprev_frame, textvariable=impulse_per_revolution_text, width=int(window_width/150), state='active')
         impulse_per_revolution_entry.grid(row=1, column=0, padx=2, pady=5)
-        button3 = ttk.Button(offset_imprev_frame, text="Send", width=window_width*0.05, command=lambda: device.send_command('L', impulse_per_revolution_text.get()))
+        button3 = ttk.Button(offset_imprev_frame, text="Send", width=window_width*0.05, command=lambda: check_text_and_send('L', impulse_per_revolution_text.get(), 'int'))
         button3.grid(row=1, column=1, padx=2, pady=2)
         #button3["state"] = "disabled"
         
@@ -345,11 +370,11 @@ def update_interface_on_channel_change():
         # Add UI options for Channel B
         device.send_command('E', 1)
         for i in range(2):
-            radio_button = ttk.Radiobutton(left_frame, text=f"{modes[i]}", variable=channel_B_mode, value=f"{modes[i]}")
+            radio_button = ttk.Radiobutton(left_frame, text=f"{modes[i]}", variable=channel_B_mode, value=f"{modes[i]}", command=lambda: set_channel_Mode('M', channel_A_mode.get(),))
             radio_button.pack(anchor=tk.W)
         channel_B_mode.set(f"{modes[0]}")
 
-        checkbox2 = ttk.Checkbutton(left_frame, text="Smooth Enabled", variable=checkbox_2_smooth, command=lambda: device.send_command('H', int(checkbox_2_smooth.get()) ))
+        checkbox2 = ttk.Checkbutton(left_frame, text="Smooth Enabled", variable=checkbox_2_smooth, command=lambda: device.send_command('N', int(checkbox_2_smooth.get()) ))
         checkbox2.pack(anchor=tk.W)
         checkbox3 = ttk.Checkbutton(left_frame, text="Offset Enabled", variable=checkbox_3_offset, command=offset_enabled_clicked)
         checkbox3.pack(anchor=tk.W)
@@ -361,7 +386,7 @@ def update_interface_on_channel_change():
         offset_text.set("0")
         offset_entry = ttk.Entry(offset_magn_frame, textvariable=offset_text, width=int(window_width/150), state='disabled')
         offset_entry.grid(row=1, column=0, padx=2, pady=5)
-        button1 = ttk.Button(offset_magn_frame, text="Send", width=window_width*0.05, command=lambda: device.send_command('P', offset_text.get()))
+        button1 = ttk.Button(offset_magn_frame, text="Send", width=window_width*0.05, command=lambda: check_text_and_send('P', offset_text.get(), 'int'))
         button1.grid(row=1, column=1, padx=2, pady=5)
         button1["state"] = "disabled"
         
@@ -373,7 +398,7 @@ def update_interface_on_channel_change():
         offset_scale_text.set("1.000")
         offset_scale_entry = ttk.Entry(offset_scale_frame, textvariable=offset_scale_text, width=int(window_width/150), state='disabled')
         offset_scale_entry.grid(row=4, column=0, padx=2, pady=5)
-        button2 = ttk.Button(offset_scale_frame, text="Send", width=window_width*0.05, command=lambda: device.send_command('Q', offset_scale_text.get()))
+        button2 = ttk.Button(offset_scale_frame, text="Send", width=window_width*0.05, command=lambda: check_text_and_send('Q', offset_scale_text.get(), 'float'))
         button2.grid(row=4, column=1, padx=2, pady=5)
         button2["state"] = "disabled"
 
@@ -393,7 +418,7 @@ def update_interface_on_channel_change():
         pulses_per_count_text.set("1")
         p_per_c_entry = ttk.Entry(pulse_per_count_frame, textvariable=pulses_per_count_text, width=int(window_width/150), state='active')
         p_per_c_entry.grid(row=1, column=0, padx=2, pady=5)
-        button1 = ttk.Button(pulse_per_count_frame, text="Set", width=window_width*0.05, command=lambda: device.send_command('T', pulses_per_count_text.get()))
+        button1 = ttk.Button(pulse_per_count_frame, text="Set", width=window_width*0.05, command=lambda: check_text_and_send('T', pulses_per_count_text.get(), 'int'))
         button1.grid(row=1, column=1, padx=2, pady=5)
         
         offset_imprev_frame = ttk.Frame(left_frame)
@@ -403,9 +428,11 @@ def update_interface_on_channel_change():
         impulse_per_revolution_text.set("100")
         impulse_per_revolution_entry = ttk.Entry(offset_imprev_frame, textvariable=impulse_per_revolution_text, width=int(window_width/150), state='active')
         impulse_per_revolution_entry.grid(row=1, column=0, padx=2, pady=5)
-        button3 = ttk.Button(offset_imprev_frame, text="Send", width=window_width*0.05)
+        button3 = ttk.Button(offset_imprev_frame, text="Send", width=window_width*0.05) #TODO: add command here!
         button3.grid(row=1, column=1, padx=2, pady=2)
         #button3["state"] = "disabled"
+        button_reset = ttk.Button(offset_imprev_frame, text="Reset Counter", width=window_width*0.2, command=lambda: device.send_command('Z', 0))
+        button_reset.grid(row=2, column=0, padx=2, pady=2)
             
     elif selected_option == "Power":
         # Add radio buttons for Power Input channel

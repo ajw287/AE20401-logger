@@ -16,6 +16,7 @@ class serialDevice:
 
     def __init__(self, max_message_length=50):
         self.synchronised = False
+        self.connected = False
         self.charLim = max_message_length
         self.data_queue =  queue.Queue()
 
@@ -23,7 +24,7 @@ class serialDevice:
         # Create a queue to hold the received data
         try:
             self.ser = serial.Serial(selected_port, baudrate=9600, timeout=1)
-            connected = True
+            self.connected = True
         except Exception as e:
             print(e)
             print("Error connecting to serial")
@@ -51,15 +52,37 @@ class serialDevice:
         data:   string
             data to send with the command see ae20401 manual
         """
+
         if command is not None:
-            print("c: "+command + "   d:" + str(data))
-            return
-            if command == 'P':
-                self.ser.send(f"401:{command}:{data}:;")
-            elif command == 'Q':
-                self.ser.send(f"401:{command}:{int(data*1000)}:;")
+            #print("c: "+command + "   d:" + str(data))
+            simple_commands = ('E', 'F', 'G', 'H', 'I', 'J' , 
+                                'L', 'M', 'N', 'O', 'P', 
+                                'R', 'S', 'T', 'U', 'Y','Z')
+            float_commands = ('K','Q')
+            #print(type(command))
+            if self.connected:
+                if command.startswith(simple_commands):
+                    data = int(data)
+                    cmd_str = f"401:{command}:{data}:;"
+                    cmd_ascii = cmd_str.encode(encoding="ascii",errors="ignore")
+                    #print(cmd_ascii)
+                    self.ser.write(cmd_ascii)
+                elif command.startswith(float_commands):
+                    data = int(float(data) *1000)
+                    cmd_str = f"401:{command}:{data}:;"
+                    cmd_ascii = cmd_str.encode(encoding="ascii",errors="ignore")
+                    #print(cmd_ascii)
+                    self.ser.write(cmd_ascii)
+                return
+
+                if command == 'P':
+                    self.ser.write(f"401:{command}:{data}:;")
+                elif command == 'Q':
+                    self.ser.write(f"401:{command}:{int(data*1000)}:;")
+                else:
+                    pass
             else:
-                pass
+                pass # ignore commands when unconnected
     
     def synchronise(self):
         """ Parse untill you get a ';' discard any partial message on start"""
@@ -82,7 +105,7 @@ class serialDevice:
     def get_next_message(self):
         """ get the next text up to a ';' delimeter
         
-        Returns
+         Returns
         -------
         timestamp
             an approximate timestamp from datetime
@@ -116,8 +139,8 @@ class serialDevice:
     
     def disconnect(self):
         try:
-            connected = False
-            synchronised = False
+            self.connected = False
+            self.synchronised = False
             if self.ser is not None:
                 self.ser.__del__() #
         except serial.SerialException as e:
