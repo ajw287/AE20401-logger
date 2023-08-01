@@ -26,7 +26,7 @@ def draw_graph(timestamps, data, color, xlabel, ylabel, title):
     timestamps : list
         x axis of the graph - time that messges were recieved
     data: list
-        message data
+        list containing message data
     color: string
         Hex value of the color to plot
     xlabel: string
@@ -285,6 +285,7 @@ def update_interface_on_channel_change():
     global device
     global button1, button2
     global offset_entry, offset_scale_entry, impulse_per_revolution_entry
+    global button_comma_format, button_dot_format
 
     selected_option = option_var.get()
     # Clear any existing widgets in the left pane
@@ -293,6 +294,7 @@ def update_interface_on_channel_change():
 
     # Add new widgets based on the selected option
     if selected_option == "Channel A":
+        device.send_command('E', 0)
         # Add UI options for Channel A
         #channel_A_mode = tk.StringVar(value=f"{modes[0]}")
         for i in range(3):
@@ -341,6 +343,7 @@ def update_interface_on_channel_change():
         
     elif selected_option == "Channel B":
         # Add UI options for Channel B
+        device.send_command('E', 1)
         for i in range(2):
             radio_button = ttk.Radiobutton(left_frame, text=f"{modes[i]}", variable=channel_B_mode, value=f"{modes[i]}")
             radio_button.pack(anchor=tk.W)
@@ -375,7 +378,8 @@ def update_interface_on_channel_change():
         button2["state"] = "disabled"
 
     elif selected_option == "Channel C":
-        # Add radio buttons for Option 3
+        # Add radio buttons for Channel C
+        device.send_command('E', 2)
         checkbox5 = ttk.Checkbutton(left_frame, text="Run/Stop", variable=checkbox_5_run, command=lambda: device.send_command('R', int(checkbox_5_run.get()) ))
         checkbox5.pack(anchor=tk.W)
         checkbox6 = ttk.Checkbutton(left_frame, text="Internal/External", variable=checkbox_6_external, command=lambda: device.send_command('S', int(checkbox_6_external.get()) ))
@@ -404,7 +408,8 @@ def update_interface_on_channel_change():
         #button3["state"] = "disabled"
             
     elif selected_option == "Power":
-        # Add radio buttons for Option 3
+        # Add radio buttons for Power Input channel
+        device.send_command('E', 3)
         radio_var = tk.StringVar(value="A")
         for i in range(len(power_modes)):
             radio_button = ttk.Radiobutton(left_frame, text=f"mode: {power_modes[i]}", variable=radio_var, value=chr(65+i))
@@ -423,6 +428,18 @@ def update_interface_on_channel_change():
         button = ttk.Button(text_btn_frame, text="Send", width=window_width*0.05)
         button.grid(row=1, column=1, padx=2, pady=2)
         button["state"] = "disabled"
+    
+    # do this for all settings   
+    num_format_frame = ttk.Frame(left_frame)
+    num_format_frame.pack(anchor=tk.S, side= tk.BOTTOM)
+    label_fmat = ttk.Label(num_format_frame, text="D.P. format:")
+    label_fmat.grid(row=0, column=0, columnspan=2, padx=5, pady=5) 
+    button_comma_format = ttk.Button(num_format_frame, text='","', width=window_width*0.05, command = comma_format)
+    button_comma_format.grid(row=1, column=0, padx=2, pady=2)
+    button_comma_format["state"] = "active"
+    button_dot_format = ttk.Button(num_format_frame, text='"."', width=window_width*0.05, command=dot_format)
+    button_dot_format.grid(row=1, column=1, padx=2, pady=2)
+    button_dot_format["state"] = "disabled"
 
 def on_dropdown_select(event):
     """ Handle the dropdown being used by the user
@@ -435,6 +452,23 @@ def tellUser(text_to_output, label_msg=True):
     if label_msg:
         tell_user_label['text'] = text_to_output
         root.update_idletasks()
+
+def comma_format():
+    """ Convert to comma format
+    """
+    global button_comma_format, button_dot_format, device
+    device.send_command('Y', 0)
+    button_comma_format["state"] = "disabled"
+    button_dot_format["state"] = "active"
+
+def dot_format():
+    """ Convert to dot format
+    """
+    global button_comma_format, button_dot_format, device
+    device.send_command('Y', 1)
+    button_comma_format["state"] = "active"
+    button_dot_format["state"] = "disabled"
+
 
 ### GLOBALS ###
 data_list = [] # List to hold the processed received data
@@ -461,6 +495,8 @@ checkbox_5_run = None
 checkbox_6_external = None
 checkbox_7_imp_countC = None
 checkbox_8_attenuator = None
+button_dot_format = None
+button_comma_format = None
 # mode menu text entries
 attenuation_text = None
 offset_text = None
@@ -483,6 +519,7 @@ def main():
     global tell_user_label
     global channel_A_mode, channel_B_mode, power_mode
     global plt
+    global button_comma_format, button_dot_format
     # Create the main window
     root = tk.Tk()
     #initialise tkinter global variables
