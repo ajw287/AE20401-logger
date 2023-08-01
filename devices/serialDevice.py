@@ -4,7 +4,6 @@ import serial
 import queue
 from datetime import datetime
 
-
 from parsers.data_parser import parse_data_message, message_format
 
 class serialDevice:
@@ -52,13 +51,15 @@ class serialDevice:
         data:   string
             data to send with the command see ae20401 manual
         """
-
-        if command == 'P':
-            self.ser.send(f"401:{command}:{data}:;")
-        elif command == 'Q':
-            self.ser.send(f"401:{command}:{int(data*1000)}:;")
-        else:
-            pass
+        if command is not None:
+            print("c: "+command + "   d:" + str(data))
+            return
+            if command == 'P':
+                self.ser.send(f"401:{command}:{data}:;")
+            elif command == 'Q':
+                self.ser.send(f"401:{command}:{int(data*1000)}:;")
+            else:
+                pass
     
     def synchronise(self):
         """ Parse untill you get a ';' discard any partial message on start"""

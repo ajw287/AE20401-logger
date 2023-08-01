@@ -1,6 +1,8 @@
 
 
-# Define the arrow direction mapping
+# Define the message mapping
+# the message_format is never used, the dictionary is back to front,
+# it would be better to have keys as UI description and lookup commands
 message_format = {
     'A': ('dev_to_pc',  'Frequency Channel A',              'in nHz',),
     'B': ('dev_to_pc',  'Frequency Channel B',              'in uHz',),
@@ -41,6 +43,22 @@ message_format = {
 }
 
 def parse_data_message(data_message):
+    """ Parse a string into the Format: <ECN>:<CODE>:<DATA>:;
+    
+    Parameters
+    ----------
+    data_message : string
+        a string that contains a message in the format: <ECN>:<CODE>:<DATA>:;
+
+    Returns
+    -------
+    ecn : string
+        a list of available ports
+    code : string
+        the code letter of the command 
+    data :
+        the data associated with that command
+    """
     # Split the data_message into its components
     components = data_message.strip(';').split(':')
     # Process
