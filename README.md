@@ -7,6 +7,4 @@ This is a very simple serial interface for the USB output of the Æ20401 AE20401
 
 The code should be portable since it is pure python.  It has been written and tested under linux since the manufacturer supplied software is windows native.
 
-So far only the counter is implemented, this is just a simple proof-of-concept.  Better parsing etc to follow.
-
-Let me know if you see this project and are interested.
+The system has basic logging functionality.  Let me know if you see this project and are interested.
