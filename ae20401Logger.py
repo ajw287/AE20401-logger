@@ -133,10 +133,10 @@ def update_graph():
             plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
             canvas.draw()
     elif selected_option == "Power":
-        tell_User("unimplemented option selected")
+        tellUser("unimplemented option selected")
         pass
     else:
-        tell_User("unsupported option selected")
+        tellUser("unsupported option selected")
 
 def save_to_csv():
     """ Saves the data_list to a csv file
