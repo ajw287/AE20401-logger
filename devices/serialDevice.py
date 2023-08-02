@@ -19,6 +19,7 @@ class serialDevice:
         self.connected = False
         self.charLim = max_message_length
         self.data_queue =  queue.Queue()
+        self.com_ports = None
 
     def connect(self, selected_port):
         # Create a queue to hold the received data
@@ -30,15 +31,22 @@ class serialDevice:
             print("Error connecting to serial")
 
     def fetch_serial_ports(self):
-        """ Function to fetch available COM ports
+        """ Function to update and return COM ports
 
         Returns
         -------
         ports : list
             a list of available ports
+        changed : boolean
+            a boolean as to whether the list has changed since this was last called.
         """
-
-        return [port.device for port in serial.tools.list_ports.comports()]
+        ports = [port.device for port in serial.tools.list_ports.comports()]
+        if ports == self.com_ports:
+            changed = False
+        else:
+            self.com_ports = ports
+            changed = True
+        return ports, changed
 
     def send_command(self, command, data):
         """send a command down the serial port

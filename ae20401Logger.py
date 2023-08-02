@@ -131,7 +131,7 @@ def save_to_csv():
     """
 
     global data_list
-    file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV Files", "*.csv")])
+    file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV Files", "*.csv")], initialfile = "AE20401_datalog.csv")
     tellUser("writing data to : "+file_path)
     if file_path:
         with open(file_path, 'w') as file:
@@ -167,6 +167,7 @@ def start_button_click():
     """
 
     global thread_stop_event, start_button, stop_button, device, data_list, read_thread
+    global option_var, root
 
     start_button["state"] = "disabled"
     stop_button["state"] = "active"
@@ -174,9 +175,7 @@ def start_button_click():
     selected_port = com_port_var.get()
     if selected_port:
         try:
-
             device.connect(selected_port)
-
             # Clear data_list before starting a new data acquisition
             data_list.clear()
             read_thread = threading.Thread(target=read_serial_data_in_thread, args=(device, thread_stop_event))
@@ -184,6 +183,13 @@ def start_button_click():
             read_thread.daemon = True  # Set the thread as a daemon so that it will stop when the main thread stops
             read_thread.start()
             tellUser("setup logging and awating data...")
+
+            # synchronise the device and the selected graph in the UI
+            selected_option = option_var.get()
+            for i in range(len(channel_options)):
+                if selected_option == channel_options[i]:
+                    device.send_command('E', i)
+            
             # Update the graph when new data arrives
             root.after(100, process_received_data)
         except Exception as e:
@@ -208,16 +214,15 @@ def process_received_data():
 def stop_button_click():
     """'Stop' button click handler - stops logging data
     """
-
     global start_button, stop_button
     stop_button["state"] = "disabled"
     # serial interface doesn't seem to restart...
     #start_button["state"] = "active"
     #tellUser("Recording Stopped - save data or restart")
     stop_data_acquisition()
+    # Schedule the next update after 2 seconds (adjust this time interval as needed)
+    root.after(2000, update_available_devices)
     
-
-
 def stop_data_acquisition():
     """ Function to stop the data acquisition thread and clean up
     """
@@ -271,7 +276,6 @@ def offset_enabled_clicked():
         device.send_command(command, offset_enabled)
 
 def check_text_and_send(command, text_input, int_or_float='int'):
-    print("called this:")
     if int_or_float == 'float':
         try:
             number_as_integer = float(text_input)
@@ -496,6 +500,22 @@ def dot_format():
     button_comma_format["state"] = "active"
     button_dot_format["state"] = "disabled"
 
+def update_available_devices():
+    """ A recurring function that keeps the USB list correct in the dropdown
+    """
+    global device, com_port_dropdown, root, com_port_var
+    if not device.connected:
+        # Get the current list of available serial ports
+        available_ports, dev_changed = device.fetch_serial_ports()
+        # Check if the available ports have changed since the last update
+        if dev_changed:
+            # Update the dropdown list with the new available ports
+            com_port_dropdown['values'] = available_ports
+            # Set the com port to the last name in the list... this is good as USB is late in the alphabet... ?
+            com_port_var = tk.StringVar(value=available_ports[-1]) if available_ports else tk.StringVar()
+            com_port_dropdown.set(com_port_var.get())
+        # Schedule the next update after 2 seconds (adjust this time interval as needed)
+        root.after(2000, update_available_devices)
 
 ### GLOBALS ###
 data_list = [] # List to hold the processed received data
@@ -532,6 +552,8 @@ offset_scale_text = None
 impulse_per_revolution_text = None
 tell_user_label = None
 window_width = 0
+com_port_dropdown = None
+com_ports = []
 
 def main():
     # Main function to create the GUI and start the application
@@ -546,7 +568,7 @@ def main():
     global tell_user_label
     global channel_A_mode, channel_B_mode, power_mode
     global plt
-    global button_comma_format, button_dot_format
+    global button_comma_format, button_dot_format, com_port_dropdown
     # Create the main window
     root = tk.Tk()
     #initialise tkinter global variables
@@ -554,8 +576,8 @@ def main():
     checkbox_2_smooth = tk.IntVar(value=0)
     checkbox_3_offset = tk.IntVar(value=0)
     #checkbox_4_imp_countA = tk.IntVar(value=0)
-    checkbox_5_run = tk.IntVar(value=1)
-    checkbox_6_external = tk.IntVar(value=1)
+    checkbox_5_run = tk.IntVar(value=0)
+    checkbox_6_external = tk.IntVar(value=0)
     checkbox_7_imp_countC = tk.IntVar(value=0)
     checkbox_8_attenuator = tk.IntVar(value=0)
 
@@ -569,7 +591,7 @@ def main():
     offset_scale_text = tk.StringVar()
     impulse_per_revolution_text = tk.StringVar()
 
-    option_var = tk.StringVar(value="Channel C")
+    option_var = tk.StringVar(value="Channel A")
 
     root.title("Æ20401 Data Logger")
 
@@ -588,12 +610,12 @@ def main():
     toolbar.pack(side=tk.TOP, fill=tk.X)
 
     # Fetch available COM ports
-    com_ports = device.fetch_serial_ports()
+    com_ports, dev_changed = device.fetch_serial_ports()
     com_port_var = tk.StringVar(value=com_ports[-1]) if com_ports else tk.StringVar()
     com_port_dropdown = ttk.Combobox(toolbar, textvariable=com_port_var, values=com_ports, state="readonly")
     com_port_dropdown.pack(side=tk.LEFT, padx=5, pady=5)
 
-    start_button = ttk.Button(toolbar, text="Start", command=start_button_click)
+    start_button = ttk.Button(toolbar, text="Connect", command=start_button_click)
     start_button.pack(side=tk.LEFT, padx=5, pady=5)
 
     stop_button = tk.Button(toolbar, text="Stop", command=stop_button_click)
@@ -603,8 +625,9 @@ def main():
     save_button = ttk.Button(toolbar, text="Save to CSV", command=save_to_csv)
     save_button.pack(side=tk.LEFT, padx=5, pady=5)
 
-    # Add the new dropdown to the toolbar
-    channel_dropdown = ttk.Combobox(toolbar, textvariable=option_var, values=channel_options)#, state="readonly")
+    # Add the channle dropdown to the toolbar
+    channel_dropdown = ttk.Combobox(toolbar, textvariable=option_var, values=channel_options, state="readonly")
+    channel_dropdown.config(width = int(window_width *0.005))
     channel_dropdown.pack(side=tk.LEFT, padx=5, pady=5)
 
     # Bind the dropdown's selection event to update the interface items
@@ -645,6 +668,9 @@ def main():
     # Create an event to stop the data acquisition thread
     thread_stop_event = threading.Event()
     
+    # Start periodic check for devices device not connected.
+    update_available_devices()
+
     # Start the main loop
     root.mainloop()
  
